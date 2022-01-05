@@ -351,7 +351,11 @@ Many measurements will result in simultaneous data for multiple variables which 
 
 Consider two $$m$$-dimensional multivariate random variates, $$\mathbf{X}=[X_{1}, X_{2},..., X_{m}]$$ and $$\mathbf{Y}=[Y_{1}, Y_{2},..., Y_{m}]$$, which are drawn from different distributions with mean vectors $$\boldsymbol{\mu}_{x}$$, $$\boldsymbol{\mu}_{y}$$ and covariance matrices $$\boldsymbol{\Sigma}_{x}$$, $$\boldsymbol{\Sigma}_{y}$$. The sum of these variates, $$\mathbf{Z}=\mathbf{X}+\mathbf{Y}$$ follows a multivariate distribution with mean $$\boldsymbol{\mu}_{z}=\boldsymbol{\mu}_{x}+\boldsymbol{\mu}_{y}$$ and covariance $$\boldsymbol{\Sigma}_{z}=\boldsymbol{\Sigma}_{x}+\boldsymbol{\Sigma}_{y}$$. I.e. analogous to the univariate case, the result of summing variates drawn from multivariate distributions is to produce a variate with mean vector equal to the sum of the mean vectors and covariance matrix equal to the sum of the covariance matrices.
 
-The analogy with univariate distributions also extends to the [__Central Limit Theorem__]({{ page.root }}/reference/#central-limit-theorem), so that the sum of $$n$$ random variates drawn from multivariate distributions is drawn from a distribution which for large $$n$$ becomes asymptotically multivariate normal, with mean vector equal to the sum of mean vectors and covariance matrix equal to the sum of covariance matrices.
+The analogy with univariate distributions also extends to the [__Central Limit Theorem__]({{ page.root }}/reference/#central-limit-theorem), so that the sum of $$n$$ random variates drawn from multivariate distributions, $$\mathbf{Y}=\sum\limits_{i=1}^{n} \mathbf{X}_{i}$$ is drawn from a distribution which for large $$n$$ becomes asymptotically multivariate normal, with mean vector equal to the sum of mean vectors and covariance matrix equal to the sum of covariance matrices. This also means that for averages of $$n$$ random variates drawn from multivariate distributions $$\bar{\mathbf{X}} = \frac{1}{n} \sum\limits_{i=1}^{n} \mathbf{X}_{i}$$, the mean vector is equal to the average of mean vectors while the covariance matrix is equal to the sum of covariance matrices divided by $$n^{2}$$:
+
+$$\boldsymbol{\mu}_{\bar{\mathbf{X}}} = \frac{1}{n} \sum\limits_{i=1}^{n} \boldsymbol{\mu}_{i}$$ 
+
+$$\boldsymbol{\Sigma}_{\bar{\mathbf{X}}} = \frac{1}{n^{2}} \sum\limits_{i=1}^{n} \boldsymbol{\Sigma}_{i}$$ 
 
 
 > ## Programming challenge: demonstrating the multivariate Central Limit Theorem with a 3D plot

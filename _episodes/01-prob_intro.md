@@ -68,7 +68,7 @@ Now in our coin flip example, we know the total sample space is $$\Omega = \{HH,
 3. $$(A \mbox{ or } B)^{C}$$ corresponds to $$\{TH\}$$ only, so $$P(A \mbox{ or } B)^{C}=0.25$$
 4. $$(A \mbox{ and } B)$$ corresponds to the overlap of the two sets, i.e. $$HH$$, so $$P(A \mbox{ and } B)=0.25$$.
 
-> ## Test yourself
+> ## Test yourself: dice roll sample space
 > Write out as a grid the sample space of the roll of two six-sided dice (one after the other), e.g. a roll of 1 followed by 3 is denoted by the element 13. You can neglect commas for clarity. For example, the top row and start of the next row will be:
 >
 > $$11\:21\:31\:41\:51\:61$$
@@ -109,7 +109,7 @@ For example, consider the set $$A$$ of __people taking this class__, and the set
 
 Note that events $$A$$ and $$B$$ are [__independent__]({{ page.root }}/reference/#independence) if $$P(A\vert B) = P(A) \Rightarrow P(A \mbox{ and } B) = P(A)P(B)$$. The latter equation is the one for calculating combined probabilities of events that many people are familiar with, but it only holds if the events are independent! For example, the probability that you ate a cheese sandwich for lunch is (generally) independent of the probability that you flip two heads in a row. Clearly, independent events do not belong on the same Venn diagram since they have no relation to one another! However, if you are flipping the coin in order to narrow down what sandwich filling to use, the coin flip and sandwich choice can be classed as outcomes on the same Venn diagram and their combination can become an event with an associated probability.
 
-> ## Test yourself
+> ## Test yourself: conditional probability for a dice roll
 > Use the solution to the dice question above to calculate: 
 >
 > 1. The probability of rolling doubles given that the total rolled is greater than 8.
@@ -154,7 +154,7 @@ Note that events $$A$$ and $$B$$ are [__independent__]({{ page.root }}/reference
 {: .callout}
 
 
-> ## Test yourself 
+> ## Test yourself: conditional probabilities and GW counterparts
 > You are an astronomer who is looking for radio counterparts of binary neutron star mergers that are detected via gravitational wave events. Assume that there are three types of binary merger: binary neutron stars ($$NN$$), binary black holes ($$BB$$) and neutron-star-black-hole binaries ($$NB$$). For a hypothetical gravitational wave detector, the probabilities for a detected event to correspond to $$NN$$, $$BB$$, $$NB$$ are 0.05, 0.75, 0.2 respectively.  Radio emission is detected only from mergers involving a neutron star, with probabilities 0.72 and 0.2 respectively.  
 >
 >Assume that you follow up a gravitational wave event with a radio observation, without knowing what type of event you are looking at.  Using $$D$$ to denote radio detection, express each probability given above as a conditional probability (e.g. $$P(D\vert NN)$$), or otherwise (e.g. $$P(BB)$$). Then use the rules of probability calculus (or their extensions) to calculate the probability that you will detect a radio counterpart.
@@ -245,10 +245,6 @@ Remember that your own results will differ from these because your random number
 >> To sample cards from the deck you can set up a list of tuples which each represent the suit and the rank of a single card in the deck, e.g. `(1,3)` for suit 1, card rank 3 in the suit. The exact matching of numbers to suits or cards does not matter!
 > {: .solution}
 {: .challenge}
-
-
-
-
 
 
 

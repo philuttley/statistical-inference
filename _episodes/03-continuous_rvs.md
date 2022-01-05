@@ -91,7 +91,22 @@ while the variance is:
 
 $$V[X] = \sigma^{2} = E[(X-\mu)^{2})] = \int_{-\infty}^{+\infty} (x-\mu)^{2} p(x)\mathrm{d}x$$
 
-and the results for scaled linear combinations of continuous variables are the same as for discrete random variables (see previous Episode).
+and the results for scaled linear combinations of continuous random variates are the same as for discrete random variates, i.e. for a scaled sum of random variates $$Y=\sum\limits_{i=1}^{n} a_{i}X_{i}$$:
+
+$$E[Y] = \sum\limits_{i=1}^{n} a_{i}E[X_{i}]$$
+
+$$V[Y] = \sum\limits_{i=1}^{n}  a_{i}^{2} \sigma_{i}^{2}$$
+
+and we should also recall the results which follow for averages of variables $$\bar{X} = \frac{1}{n} \sum\limits_{i=1}^{n} X_{i}$$:
+
+$$E[\bar{X}] = \frac{1}{n} \sum\limits_{i=1}^{n} \mu_{i}$$ 
+
+$$V[\bar{X}] = \frac{1}{n^{2}} \sum\limits_{i=1}^{n} \sigma_{i}^{2}$$
+
+and in the case where the variates are all drawn from the same distribution with mean $$\mu$$ and variance $$\sigma^{2}$$:
+ 
+ $$E[\bar{X}] = \mu$$ and $$V[\bar{X}] = \frac{\sigma^{2}}{n}$$.
+
 
 ## Probability distributions: Uniform
 
@@ -475,7 +490,7 @@ The plots show the ratio between the distributions of our sums of $$n$$ uniform 
 It's also useful to note that __a normally distributed variate added to another normally distributed variate, produces another normally distributed variate__ (with mean and variance equal to the sums of mean and variance for the added variables). The normal distribution is a limiting distribution, which sums of random variates will always approach, leading us to one of the most important theorems in statistics...
 
 > ## The Central Limit Theorem
-> The [__Central Limit Theorem__]({{ page.root }}/reference/#central-limit-theorem) __(CLT)__ states that under certain general conditions (e.g. distributions with finite mean and variance), a sum of $$n$$ random variates drawn from distributions with mean $$\mu_{i}$$ and variance $$\sigma_{i}^{2}$$ will tend towards being normally distributed for large $$n$$, with the distribution having mean $$\mu = \sum\limits_{i=1}^{n} \mu_{i}$$ and variance $$\sigma^{2} = \sum\limits_{i=1}^{n} \sigma_{i}^{2}$$.
+> The [__Central Limit Theorem__]({{ page.root }}/reference/#central-limit-theorem) __(CLT)__ states that under certain general conditions (e.g. distributions with finite mean and variance), a sum of $$n$$ random variates drawn from distributions with mean $$\mu_{i}$$ and variance $$\sigma_{i}^{2}$$ will tend towards being normally distributed for large $$n$$, with the distribution having mean $$\mu = \sum\limits_{i=1}^{n} \mu_{i}$$ and variance $$\sigma^{2} = \sum\limits_{i=1}^{n} \sigma_{i}^{2}$$ (and if we instead take the mean rather than the sum of variates, we find $$\mu = \frac{1}{n} \sum\limits_{i=1}^{n} \mu_{i}$$ and $$\sigma^{2} = \frac{1}{n^{2}} \sum\limits_{i=1}^{n} \sigma_{i}^{2}$$).
 >
 > It is important to note that the limit is approached asymptotically with increasing $$n$$, and the rate at which it is approached depends on the shape of the distribution(s) of variates being summed, with more asymmetric distributions requiring larger $$n$$ to approach the normal distribution to a given accuracy. The CLT also applies to mixtures of variates drawn from different types of distribution or variates drawn from the same type of distribution but with different parameters. Note also that summed normally distributed variables are always distributed normally, whatever the combination of normal distribution parameters.
 >

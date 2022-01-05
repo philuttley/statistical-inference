@@ -81,7 +81,9 @@ $$E[a_{1}X_{1}+a_{2}X_{2}] = a_{1}E[X_{1}]+a_{2}E[X_{2}]$$
 
 and more generally for a scaled sum of variables $$Y=\sum\limits_{i=1}^{n} a_{i}X_{i}$$:
 
-$$E[Y] = \sum\limits_{i=1}^{n} a_{i}E[X_{i}]$$
+$$E[Y] = \sum\limits_{i=1}^{n} a_{i}E[X_{i}] = \sum\limits_{i=1}^{n} a_{i}\mu_{i}$$
+
+i.e. the expectation for a scaled sum of variates is the scaled sum of their distribution means.
 
 It is also useful to consider the [__variance__]({{ page.root }}/reference/#variance), which is a measure of the squared 'spread' of the values of the variates around the mean, i.e. it is related to the weighted width of the probability distribution. It is a squared quantity because deviations from the mean may be positive (above the mean) or negative (below the mean). The (population) variance of discrete random variates $$X$$ with (population) mean $$\mu$$, is the expectation of the function that gives the squared difference from the mean:
 
@@ -104,6 +106,26 @@ For a sum of [__independent__]({{ page.root }}/reference/#independence), scaled 
 $$V[Y] = \sum\limits_{i=1}^{n}  a_{i}^{2} \sigma_{i}^{2}$$
 
 We will consider the case where the variables are correlated (and not independent) in a later Episode.
+
+
+> ## Taking averages: sample means vs. population means
+> 
+> As an example of summing scaled random variates, it is often necessary to calculate an average quantity rather than the summed value, i.e.:
+> 
+> $$\bar{X} = \frac{1}{n} \sum\limits_{i=1}^{n} X_{i}$$
+> 
+> In this case the scaling factors $$a_{i}=\frac{1}{n}$$ for all $$i$$ and we obtain:
+> 
+> $$E[\bar{X}] = \frac{1}{n} \sum\limits_{i=1}^{n} \mu_{i}$$ 
+>
+> $$V[\bar{X}] = \frac{1}{n^{2}} \sum\limits_{i=1}^{n} \sigma_{i}^{2}$$
+> 
+> and in the special case where the variates are all drawn from the same distribution with mean $$\mu$$ and variance $$\sigma^{2}$$:
+> 
+> $$E[\bar{X}] = \mu$$ and $$V[\bar{X}] = \frac{\sigma^{2}}{n}$$.
+> 
+> It is important to make a distinction between the [__sample mean__]({{ page.root }}/reference/#sample) for a sample of random variates (in this case, $$\bar{X}$$ and the expectation value, also known as the [__population mean__]({{ page.root }}/reference/#population) of the distribution the variates are drawn from, in this case $$\mu$$. In frequentist statistics, expectation values are the limiting average values for an infinitely sized sample (the 'population') drawn from a given distribution, while in Bayesian terms they simply represent the mean of the probability distribution. 
+{: .callout}
 
 > ## Test yourself: mean and variance of dice rolls
 > Starting with the probability distribution of the score (i.e. from 1 to 6) obtained from a roll of a single, fair, 6-sided dice, use equations given above to calculate the expected mean and variance of the total obtained from summing the scores from a roll of three 6-sided dice. You should not need to explicitly work out the probability distribution of the total from the roll of three dice!
