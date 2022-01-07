@@ -78,7 +78,7 @@ You can find the data you need for the analysis examples and exercises during th
 [python]: https://python.org
 [video-mac]: https://www.youtube.com/watch?v=TcSAln46u9U
 [video-windows]: https://www.youtube.com/watch?v=xxQ0mzZ8UvA
-[data_directory]: {{ page.root }}/data/
+[data_directory]: https://github.com/philuttley/statistical-inference/tree/gh-pages/data
 
 
 

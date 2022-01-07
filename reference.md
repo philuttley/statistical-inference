@@ -155,7 +155,7 @@ marginalisation
 :   The procedure of removing [conditional](#conditional-probability) terms from a probability distribution by summing over them, e.g. for discrete [event](#event) $$B$$ and multiple [mutually exclusive](#mutual-exclusivity) events $$A_{i}$$, $$P(B)= \sum\limits_{i=1}^{n} P(B\vert A_{i}) P(A_{i})$$. For a [continuous](#continuous) [joint probability distribution](#joint-probability-distribution), marginalisation corresponds to integration over the conditional parameter, e.g. $$p(x) = \int_{-\infty}^{+\infty} p(x,y)dy = \int_{-\infty}^{+\infty} p(x\vert y)p(y)\mathrm{d}y$$.
 
 mean
-:   The mean $$\bar{x}$$ for a quantity $$x_{i}$$ measured from a [sample](#sample) of data is a [statistic](#statistic) calculated as the average of the quantity, i.e. $$\frac{1}{n} \sum\limits_{i=1}^{n} x_{i}$$. For a random variable $$X$$ defined by a [probability distribution](#probability-distribution) with [pdf](#pdf) $$p(x)$$, the mean $$\mu$$ is the expectation value of the variable, $$\mu=E[X]=\int^{+\infty}_{-\infty} xp(x)\mathrm{d}x$$.
+:   The (sample) mean $$\bar{x}$$ for a quantity $$x_{i}$$ measured from a [sample](#sample) of data is a [statistic](#statistic) calculated as the average of the quantity, i.e. $$\frac{1}{n} \sum\limits_{i=1}^{n} x_{i}$$. For a random variable $$X$$ defined by a [probability distribution](#probability-distribution) with [pdf](#pdf) $$p(x)$$, the ([population](#population) or distribution) mean $$\mu$$ is the expectation value of the variable, $$\mu=E[X]=\int^{+\infty}_{-\infty} xp(x)\mathrm{d}x$$.
 
 median
 :   The median for a quantity measured from a [sample](#sample) of data, is a [statistic](#statistic) calculated as the central value of the ordered values of the quantity.  For a random variable defined by a [probability distribution](#probability-distribution), the median corresponds to the value of the 50th percentile of the variable (i.e. with half the total probability below and above the median value).
@@ -297,16 +297,16 @@ univariate
 :   Involving a single [variate](#random-variate), e.g. __univariate data__ is a type of data consisting only of observations/measurements of a single quantity or characteristic; __univariate analysis__ studies statistical properties of a single quantity such as its statistical moments and/or [probability distribution](#probability-distribution).
 
 variance
-:   The variance $$s_{x}^{2}$$ for a quantity $$x_{i}$$ measured from a [sample](#sample) of data, is a [statistic](#statistic) calculated as the average of the squared deviations of the data values from the [sample mean](#mean) (corrected by [Bessel's correction](#Bessel's_correction)), i.e. $$\frac{1}{n-1} \sum\limits_{i=1}^{n} (x_{i}-\bar{x})^{2}$$. For a random variable $$X$$ defined by a [probability distribution](#probability-distribution) with [pdf](#pdf) $$p(x)$$, the variance $$V[X]$$ is the expectation value of the squared difference of the variable from its [mean](#mean) $$\mu$$, $$V[X] = E[(X-\mu)^{2}] = \int^{+\infty}_{-\infty} (x-\mu)^{2}p(x)\mathrm{d}x$$, which is equivalent to the expectation of squares minus the square of expectations of the variable, $$E[X^{2}]-E[X]^{2}$$. 
+:   The (sample) variance $$s_{x}^{2}$$ for a quantity $$x_{i}$$ measured from a [sample](#sample) of data, is a [statistic](#statistic) calculated as the average of the squared deviations of the data values from the [sample mean](#mean) (corrected by [Bessel's correction](#Bessel's_correction)), i.e. $$\frac{1}{n-1} \sum\limits_{i=1}^{n} (x_{i}-\bar{x})^{2}$$. For a random variable $$X$$ defined by a [probability distribution](#probability-distribution) with [pdf](#pdf) $$p(x)$$, the ([population](#population) or distribution) variance $$V[X]$$ is the expectation value of the squared difference of the variable from its [mean](#mean) $$\mu$$, $$V[X] = E[(X-\mu)^{2}] = \int^{+\infty}_{-\infty} (x-\mu)^{2}p(x)\mathrm{d}x$$, which is equivalent to the expectation of squares minus the square of expectations of the variable, $$E[X^{2}]-E[X]^{2}$$. 
 
 weighted least squares
 :   TBD
 
-z-statistic
+Z-statistic
 :   A [test statistic](#test-statistic) which is defined for a [sample mean](#mean) $$\bar{x}$$ with respect to a [population](#population) of known mean $$\mu$$ and [variance](#variance) $$\sigma^{2}$$ as: $$Z = (\bar{x}-\mu)/(\sigma/\sqrt{n})$$. $$Z$$ is drawn from a [standard normal distribution](#distributions---normal) if the sample mean is normally distributed (e.g. via the [central limit theorem](#central-limit-theorem) or if the sample is drawn from a population which is itself normally distributed).
 
-z-test
-:   Any test where the [test statistic](#test-statistic) is normally distributed under the null hypothesis, such as tests using the [$$z$$-statistic](#z---statistic) (although a $$z$$-test does not have to use the $$z$$-statistic).
+Z-test
+:   Any test where the [test statistic](#test-statistic) is normally distributed under the null hypothesis, such as tests using the [$$Z$$-statistic](#z---statistic) (although a $$Z$$-test does not have to use the $$Z$$-statistic).
 
 
 
