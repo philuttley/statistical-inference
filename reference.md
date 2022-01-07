@@ -142,6 +142,9 @@ interquartile range
 joint probability distribution
 :   A probability distribution which describes the joint probability of sampling given combinations of variables. Such distributions are commonly known as [bivariate](#bivariate) (for two variables, i.e. the distribution for a combined sample of two different variates) or [multivariate](#multivariate) for more than two variables.
 
+kurtosis
+:   TBD
+
 likelihood
 :   TBD
 
@@ -171,6 +174,9 @@ MLE
 
 mode
 :   The mode is the most frequent value in a [sample](#sample) of data. For a random variable defined by a [probability distribution](#probability-distribution), the mode is the value of the variable corresponding to the peak of the [pdf](#pdf).
+
+moment
+:   Moments are quantities which describe the shape of a function, in statistics the moments describe the shape of a [pdf](#pdf). The __first raw moment__ is the [mean](#mean) $$\mu$$, which defines the centre of the pdf, while the central moments $$\mu_{n}$$ are defined as $$\mu_{n}=E[(X-\mu)^{n}]$$. The second, third and fourth central moments are the [variance](#variance), [skewness](#skewness) and [kurtosis](#kurtosis), quantifying respectively the distribution's width or dispersion, its asymmetry and the heaviness of its tails compared to its centre.
 
 multivariate 
 :   Involving three or more [variates](#random-variate), e.g. __multivariate data__ is a type of data consisting of observations/measurements of three variables; __multivariate analysis__ studies the relationships between three or more variables, to see which are related and how.
@@ -255,6 +261,9 @@ significance level
 significance test
 :   See [hypothesis test](#hypothesis-test)
 
+skewness
+:   TBD
+
 standard deviation
 :   The standard deviation of a sample of data or a random variable with a probability distribution, is equal to the square-root of [variance](#variance) for that quantity. In the context of time-variable quantities it is also often called the __root-mean-squared deviation__ (or just __rms__).
 
@@ -273,7 +282,7 @@ See also: [systematic error](#systematic-error), [precision](#precision).
 
 systematic error
 :   An error that is not random but is a systematic shift away from the 'true' value of the measured quantity obtained from data (or a quantity derived from it). E.g. a systematic error may be produced by a fault in the experimental setup or apparatus, or a flaw in the design of a survey so it is biased towards members of the population being sampled with specific properties in a way that cannot be corrected for.
-See also [statistical error](#statistical-error), [accuracy](#accuracy)
+See also [statistical error](#statistical-error), [accuracy](#accuracy)   
 
 statistical test
 :   A test of whether a given [test statistic](#test-statistic) is consistent with its distribution under a specified hypothesis (and associated assumptions).
