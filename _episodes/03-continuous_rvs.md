@@ -97,15 +97,30 @@ $$E[Y] = \sum\limits_{i=1}^{n} a_{i}E[X_{i}]$$
 
 $$V[Y] = \sum\limits_{i=1}^{n}  a_{i}^{2} \sigma_{i}^{2}$$
 
-and we should also recall the results which follow for averages of variables $$\bar{X} = \frac{1}{n} \sum\limits_{i=1}^{n} X_{i}$$:
 
-$$E[\bar{X}] = \frac{1}{n} \sum\limits_{i=1}^{n} \mu_{i}$$ 
+> ## Taking averages: sample means vs. population means
+> 
+> As an example of summing scaled random variates, it is often necessary to calculate an average quantity rather than the summed value, i.e.:
+> 
+> $$\bar{X} = \frac{1}{n} \sum\limits_{i=1}^{n} X_{i}$$
+> 
+> Where $$\bar{X}$$ is also known as the [__sample mean__]({{ page.root }}/reference/#mean). In this case the scaling factors $$a_{i}=\frac{1}{n}$$ for all $$i$$ and we obtain:
+> 
+> $$E[\bar{X}] = \frac{1}{n} \sum\limits_{i=1}^{n} \mu_{i}$$ 
+>
+> $$V[\bar{X}] = \frac{1}{n^{2}} \sum\limits_{i=1}^{n} \sigma_{i}^{2}$$
+> 
+> and in the special case where the variates are all drawn from the same distribution with mean $$\mu$$ and variance $$\sigma^{2}$$:
+> 
+> $$E[\bar{X}] = \mu$$ and $$V[\bar{X}] = \frac{\sigma^{2}}{n}$$,
+> 
+> which leads to the so-called [__standard error__]({{ page.root }}/reference/#standard-error) on the sample mean (the standard deviation of the sample mean):
+>
+> $$\sigma_{\bar{X}} = \sigma/\sqrt{n}$$
+>
+> It is important to make a distinction between the sample mean for a sample of random variates ($$\bar{X}$$) and the expectation value, also known as the [__population mean__]({{ page.root }}/reference/#mean) of the distribution the variates are drawn from, in this case $$\mu$$. In frequentist statistics, expectation values are the limiting average values for an infinitely sized sample (the 'population') drawn from a given distribution, while in Bayesian terms they simply represent the mean of the probability distribution. 
+{: .callout}
 
-$$V[\bar{X}] = \frac{1}{n^{2}} \sum\limits_{i=1}^{n} \sigma_{i}^{2}$$
-
-and in the case where the variates are all drawn from the same distribution with mean $$\mu$$ and variance $$\sigma^{2}$$:
- 
- $$E[\bar{X}] = \mu$$ and $$V[\bar{X}] = \frac{\sigma^{2}}{n}$$.
 
 
 ## Probability distributions: Uniform
@@ -464,7 +479,7 @@ for i in range(3):
         # To get the pdf in the same bins as the histogram, we calculate the differences in cdfs at the bin
         # edges and normalise them by the bin widths.
         norm_pdf = (nd.cdf(edges[1:])-nd.cdf(edges[:-1]))/np.diff(edges)
-        # We can now plot the ratio as a pre-calculated histogram using the trick we learned in Episode 1
+        # We can now plot the ratio as a pre-calculated histogram using this trick:
         ax[i,j].hist((edges[1:]+edges[:-1])/2,bins=edges,weights=dens/norm_pdf,density=False,
                      histtype='step')
         ax[i,j].text(0.05,0.8,"$n=$"+str(nsamp[n]),transform=ax[i,j].transAxes)

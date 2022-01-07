@@ -91,7 +91,7 @@ $$V[X] = \sigma^{2} = \sum\limits_{i=1}^{n} (x_{i}-\mu)^{2} p(x_{i})$$
 
 It is possible to rearrange things:
 
-$$V[X] = E[(X-\mu)^{2})]  = E[X^{2}-2X\mu+\mu^{2}]$$
+$$V[X] = E[(X-\mu)^{2}]  = E[X^{2}-2X\mu+\mu^{2}]$$
 
 $$\rightarrow V[X] = E[X^{2}] - E[2X\mu] + E[\mu^{2}] = E[X^{2}] - 2\mu^{2} + \mu^{2}$$
 
@@ -108,25 +108,6 @@ $$V[Y] = \sum\limits_{i=1}^{n}  a_{i}^{2} \sigma_{i}^{2}$$
 We will consider the case where the variables are correlated (and not independent) in a later Episode.
 
 
-> ## Taking averages: sample means vs. population means
-> 
-> As an example of summing scaled random variates, it is often necessary to calculate an average quantity rather than the summed value, i.e.:
-> 
-> $$\bar{X} = \frac{1}{n} \sum\limits_{i=1}^{n} X_{i}$$
-> 
-> In this case the scaling factors $$a_{i}=\frac{1}{n}$$ for all $$i$$ and we obtain:
-> 
-> $$E[\bar{X}] = \frac{1}{n} \sum\limits_{i=1}^{n} \mu_{i}$$ 
->
-> $$V[\bar{X}] = \frac{1}{n^{2}} \sum\limits_{i=1}^{n} \sigma_{i}^{2}$$
-> 
-> and in the special case where the variates are all drawn from the same distribution with mean $$\mu$$ and variance $$\sigma^{2}$$:
-> 
-> $$E[\bar{X}] = \mu$$ and $$V[\bar{X}] = \frac{\sigma^{2}}{n}$$.
-> 
-> It is important to make a distinction between the [__sample mean__]({{ page.root }}/reference/#sample) for a sample of random variates (in this case, $$\bar{X}$$ and the expectation value, also known as the [__population mean__]({{ page.root }}/reference/#population) of the distribution the variates are drawn from, in this case $$\mu$$. In frequentist statistics, expectation values are the limiting average values for an infinitely sized sample (the 'population') drawn from a given distribution, while in Bayesian terms they simply represent the mean of the probability distribution. 
-{: .callout}
-
 > ## Test yourself: mean and variance of dice rolls
 > Starting with the probability distribution of the score (i.e. from 1 to 6) obtained from a roll of a single, fair, 6-sided dice, use equations given above to calculate the expected mean and variance of the total obtained from summing the scores from a roll of three 6-sided dice. You should not need to explicitly work out the probability distribution of the total from the roll of three dice!
 >
@@ -135,7 +116,7 @@ We will consider the case where the variables are correlated (and not independen
 >>
 >> The variance is $$V[X]=E[X^{2}]-\left(E[X]\right)^{2} = \frac{1}{6}\sum\limits_{i=1}^{6} i^{2} - (7/2)^{2} = 91/6 - 49/4 = 35/12 \simeq 2.92$$ . 
 >> 
->> The mean and variance for a roll of three six sided dice, since they are equally weighted is equal to the sum, i.e. $$E[Y]=21/2$$ and $$V[Y]=35/4$$.
+>> The mean and variance for a roll of three six sided dice, since they are equally weighted is equal to the sums of mean and variance, i.e. $$E[Y]=21/2$$ and $$V[Y]=35/4$$.
 > {: .solution}
 {: .challenge}
 
