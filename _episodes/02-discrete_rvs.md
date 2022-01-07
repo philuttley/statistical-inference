@@ -1,17 +1,22 @@
 ---
 title: >-
     Discrete random variables and their probability distributions
-teaching: 40
-exercises: 10
+teaching: 60
+exercises: 60
 questions:
 - "How do we describe discrete random variables and what are their common probability distributions?"
+- "How do I calculate the means, variances and other statistical quantities for numbers drawn from probability distributions?"
 objectives:
 - "Learn how discrete random variables are defined and how the Bernoulli, binomial and Poisson distributions are derived from them."
+- "Learn how the expected means and variances of discrete random variables (and functions of them) can be calculated from their probability distributions."
 - "Plot, and carry out probability calculations with the binomial and Poisson distributions."
 - "Carry out simple simulations using random variables drawn from the binomial and Poisson distributions"
 keypoints:
 - "Discrete probability distributions map a sample space of discrete outcomes (categorical or numerical) on to their probabilities."
 - "By assigning an outcome to an ordered sequence of integers corresponding to the discrete variates, functional forms for probability distributions (the pmf or probability mass function) can be defined."
+- "Random variables are drawn from probability distributions. The expectation value (arithmetic mean for an infinite number of sampled variates) is equal to the mean of the distribution function (pmf or pdf)."
+- "The expectation of the variance of a random variable is equal to the expectation of the squared variable minus the squared expectation of the variable."
+- "Sums of scaled random variables have expectation values equal to the sum of scaled expectations of the individual variables, and variances equal to the sum of scaled individual variances."
 - "Bernoulli trials correspond to a single binary outcome (success/fail) while the number of successes in repeated Bernoulli trials is given by the binomial distribution."
 - "The Poisson distribution can be derived as a limiting case of the binomial distribution and corresponds to the probability of obtaining a certain number of counts in a fixed interval, from a random process with a constant rate."
 - "Random variates can be sampled from Scipy probability distributions using the `.rvs` method."

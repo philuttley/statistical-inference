@@ -1,8 +1,8 @@
 ---
 title: >-
     Joint probability distributions
-teaching: 30
-exercises: 10
+teaching: 60
+exercises: 60
 questions:
 - "How do we define and describe the joint probability distributions of two or more random variables?"
 objectives:
@@ -150,7 +150,7 @@ The diagonal elements correspond to the variances of each variable (since the co
 
 
 
-> ## Plotting joint probability distributions
+> ## Programming example: plotting joint probability distributions
 > 
 > It is useful to be able to plot bivariate pdfs and their marginal and conditional pdfs  yourself, so that you can develop more intuition for how conditional probability works, e.g. by changing the covariance matrix of the distribution. We made the plots above using the following code, first to generate the pdfs:
 >
@@ -249,7 +249,7 @@ The diagonal elements correspond to the variances of each variable (since the co
 > ~~~
 > {: .language-python}
 > 
-{: .discussion}
+{: .challenge}
 
 
 ## Probability distributions: multivariate normal

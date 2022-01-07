@@ -1,13 +1,14 @@
 ---
 title: >-
     Continuous random variables and their probability distributions
-teaching: 30
-exercises: 10
+teaching: 60
+exercises: 60
 questions:
 - "How are continuous probability distributions defined and described?"
 - "What happens to the distributions of sums or means of random data?"
 objectives:
 - "Learn how the pdf, cdf, quantiles, ppf are defined and how to plot them using `scipy.stats` distribution functions and methods."
+- "Learn how the expected means and variances of continuous random variables (and functions of them) can be calculated from their probability distributions."
 - "Understand how the shapes of distributions can be described parametrically and empirically."
 - "Learn how to carry out Monte Carlo simulations to demonstrate key statistical results and theorems."
 keypoints:
@@ -17,6 +18,7 @@ keypoints:
 - "The shape of a distribution can be empirically quantified using its statistical moments, such as the mean, variance, skewness (asymmetry) and kurtosis (strength of the tails)."
 - "Quantiles such as percentiles and quartiles give the values of the random variable which correspond to fixed probability intervals (e.g. of 1 per cent and 25 per cent respectively). They can be calculated for a distribution in scipy using the `percentile` or `interval` methods."
 - "The percent point function (ppf) (`ppf` method) is the inverse function of the cdf and shows the value of the random variable corresponding to a given quantile in its distribution."
+- "The means and variances of summed random variables lead to the calculation of the standard error (the standard deviation) of the mean."
 - "Sums of samples of random variates from non-normal distributions with finite mean and variance, become asymptotically normally distributed as their sample size increases. The speed at which a normal distribution is approached depends on the shape/symmetry of the variate's distribution."
 - "Distributions of means (or other types of sum) of non-normal random data are closer to normal in their centres than in the tails of the distribution, so the normal assumption is most reliable for data that are closer to the mean."
 ---
@@ -239,7 +241,7 @@ $$p(x\vert \theta,m,s) = \frac{1}{(x-\theta)s\sqrt{2\pi}}\exp \left(\frac{-\left
 Here $$\theta$$ is the location parameter, $$m$$ the scale parameter and $$s$$ is the shape parameter.  The case for $$\theta=0$$ is known as the __2-parameter lognormal__ distribution while the __standard lognormal__ occurs when $$\theta=0$$ and $$m=1$$.  For the 2-parameter lognormal (with location parameter $$\theta=0$$), $$X\sim \mathrm{Lognormal}(m,s)$$ and we find $$E[X]=m\exp(s^{2}/2)$$ and $$V[X]=m^{2}[\exp(s^{2})-1]\exp(s^{2})$$.
 
 > ## Moments: mean, variance, skew, kurtosis
-> The mean and variance of a distribution of random variates are examples of statistical [__moments__]. The [__first raw moment__] is the mean $$\mu=E[X]$$. By subtracting the mean when calculating expectations and taking higher integer powers, we obtain the [__central moments__]:
+> The mean and variance of a distribution of random variates are examples of statistical [__moments__]({{ page.root }}/reference/#moment). The [__first raw moment__]({{ page.root }}/reference/#moment) is the mean $$\mu=E[X]$$. By subtracting the mean when calculating expectations and taking higher integer powers, we obtain the [__central moments__]({{ page.root }}/reference/#moment):
 >
 > $$\mu_{n} = E[(X-\mu)^{n}]$$
 >
@@ -247,10 +249,10 @@ Here $$\theta$$ is the location parameter, $$m$$ the scale parameter and $$s$$ i
 > 
 > $$\mu_{n} = \int_{-\infty}^{+\infty} (x-\mu)^{n} p(x)\mathrm{d}x$$
 >
-> The central moments may sometimes be _standardised_ by dividing by $$\sigma^{n}$$, to obtain a dimensionless quantity. The first central moment is zero by definition. The second central moment is the [__variance__]({{ page.root }}/reference/#variance) ($$\sigma^{2}$$). Although the mean and variance are by far the most common, you will sometimes encounter the third and fourth central moments, known respectively as the [__skewness__]({{ page.root }}/reference/#skew) and [__kurtosis__]({{ page.root }}/reference/#kurtosis). 
+> The central moments may sometimes be _standardised_ by dividing by $$\sigma^{n}$$, to obtain a dimensionless quantity. The first central moment is zero by definition. The second central moment is the [__variance__]({{ page.root }}/reference/#variance) ($$\sigma^{2}$$). Although the mean and variance are by far the most common, you will sometimes encounter the third and fourth central moments, known respectively as the [__skewness__]({{ page.root }}/reference/#skewness) and [__kurtosis__]({{ page.root }}/reference/#kurtosis). 
 >
 > Skewness measures how skewed (asymmetric) the distribution is around the mean. Positively skewed (or 'right-skewed') distributions are more extended to larger values of $$x$$, while negatively skewed ('left-skewed') distributions are more extended to smaller (or more negative) values of $$x$$. For a symmetric distribution such as the normal or uniform distributions, the skewness is zero. Kurtosis measures how `heavy-tailed' the distribution is, i.e. how strong the tail is relative to the peak of the distribution. The _excess kurtosis_, equal to kurtosis minus 3 is often used, so that the standard normal distribution has excess kurtosis equal to zero by definition.
-{: .discussion}
+{: .callout}
 
 > ## Programming example: skewness and kurtosis
 > We can return the moments of a Scipy distribution using the `stats` method with the argument `moments='sk'` to return only the skew and excess kurtosis. In a single plot panel, plot the pdfs of the following distributions and give the skew and kurtosis of the distributions as labels in the legend. 

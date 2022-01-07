@@ -2,7 +2,7 @@
 title: >-
     Introducing probability calculus and conditional probability
 teaching: 40
-exercises: 10
+exercises: 40
 questions:
 - "How do we calculate with probabilities, taking account of whether some event is dependent on the occurrence of another?"
 objectives:

@@ -1,8 +1,8 @@
 ---
 title: >-
     Bayes' Theorem
-teaching: 30
-exercises: 30
+teaching: 60
+exercises: 60
 questions:
 - "What is Bayes' theorem and how can we use it to answer scientific questions?"
 objectives:
@@ -134,7 +134,7 @@ $$p(y\vert x) = \frac{p(x\vert y)p(y)}{p(x)} = \frac{p(x\vert y)p(y)}{\int^{\inf
 > $$P(B\vert D) = \frac{\int_{0}^{1} (1-p)^{6}p^{5}}{\int_{0}^{1} (1-p)^{3}p^{5}} \simeq 0.091$$
 >
 > The probability of success for Bob is still low, but has increased compared to our initial, simple estimate. The reason for this is that our choice of prior suggests the possibility that $$\hat{p}$$ overestimated the success rate for Alice, since the median $$\hat{p}$$ suggested by the prior is 0.5, which weights the success rate for Alice down, increasing the chances for Bob.
-{: .discussion}
+{: .callout}
 
 <p align='center'>
 <img alt="Bayes anatomy" src="../fig/ep11_bayesanatomy.png" width="600"/>
@@ -155,7 +155,7 @@ We also need the [__prior probability__]({{ page.root }}/reference/#prior) or ju
 Finally, we need to normalise our prior-weighted likelihood by the so-called [__evidence__]({{ page.root }}/reference/#evidence), $$P(D)$$, a term corresponding to the probability of obtaining the given data, regardless of the hypothesis or its parameters. This term can be calculated by marginalising over the possible parameter values and (in principle) whatever viable, alternate hypotheses can account for the data. In practice, unless the situation is simple or very well constrained, this term is the hardest to calculate. For this reason, many calculations of the posterior probability make use of Monte Carlo methods (i.e. simulations with random variates), or assume simplifications that allow $$P(D)$$ to be simplified or cancelled in some way (e.g. uniform priors). The evidence is the same for different hypotheses that explain the same data, so it can also be ignored when comparing the relative probabilities of different hypotheses.
 
 
-## Programming example: is this a fair coin?
+## Is this a fair coin?
 
 Your friend gives you a coin which they took from a Las Vegas casino. They think the coin may be biased, but they don't know for sure and they don't know which way it may be biased (e.g. is a coin-flip getting heads more or less likely than a flip getting tails). You suggest that if you parameterise $$P(heads)=\theta$$, you can find out the probability distribution of $$\theta$$ by repeated flips of the coin. So how do we do this using Bayes' theorem?
 
