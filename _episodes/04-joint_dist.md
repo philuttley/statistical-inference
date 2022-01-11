@@ -68,7 +68,7 @@ Let's now recall the _multiplication rule_ of probability calculus for the varia
 
 $$p(x,y) = P(X=x \mbox{ and } Y=y) = p(x\vert y)p(y)$$
 
-I.e. we can understand the joint probability $$p(x,y)$$ in terms of the probability for a particular $x$ to occur given that a particular $$y$$ also occurs. The probability for a given pair of $$x$$ and $$y$$ is the same whether we consider $$x$$ or $$y$$ as the conditional variable. We can then write the multiplication rule as:
+I.e. we can understand the joint probability $$p(x,y)$$ in terms of the probability for a particular $$x$$ to occur given that a particular $$y$$ also occurs. The probability for a given pair of $$x$$ and $$y$$ is the same whether we consider $$x$$ or $$y$$ as the conditional variable. We can then write the multiplication rule as:
 
 $$p(x,y)=p(y,x) = p(x\vert y)p(y) = p(y\vert x)p(x)$$
 

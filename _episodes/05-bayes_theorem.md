@@ -367,6 +367,108 @@ $$p(\mathbf{x}\vert \theta) = p(x_{1}\vert \theta)\times p(x_{2}\vert \theta)\ti
 
 Provided that the probability densities of individual measurements can be calculated for any given $$\theta$$, it should be possible to calculate the posterior probability distribution for $$\theta$$, as long as the choice of prior permits it (e.g. a simple uniform prior). In practice it is often not straightforward to do these calculations and thereby map out the entire posterior probability distribution, often because the model or the data (or both)  are too complicated, or the prior is not so simple to work with. For these cases, we will turn in later episodes to maximum-likelihood methods of model fitting using numerical optimisation, or Markov Chain Monte Carlo techniques to map out the posterior pdf.
 
+> ## Programming example: constraining the Poisson rate parameter with multiple intervals
+> We've already seen how to derive the posterior probability distribution of the Poisson rate parameter $$\lambda$$ analytically for a single measurement, and how to use Monte Carlo integration to calculate the same thing. For cases with few parameters such as this, it is also possible to do the calculation numerically, using pdfs for the likelihood function and the prior together with Scipy's integration library. Here we will see how this works for the case of measurements of the counts obtained in multiple intervals.
+>
+> First, let's assume we now have measurements of the number of GW events due to binary neutron star mergers in 8 successive years. We'll put these in a numpy array as follows:
+> ~~~
+> n_events = np.array([4,2,4,0,5,3,8,3])
+> ~~~
+> {: .language-python}
+> Assuming that the measurements are independent, we can obtain the posterior probability distribution for the true rate parameter given a data vector $$\mathbf{x}$$ of $$n$$ measurements from Bayes' formula as follows:
+>
+> $$p(\lambda \vert \mathbf{x}) = \frac{p( \mathbf{x} \vert \lambda)p(\lambda)}{\int^{+\infty}_{-\infty}  p( \mathbf{x} \vert \lambda)p(\lambda) \mathrm{d}\lambda} = \frac{\left(\prod\limits_{i=1}^{n} p( x_{i} \vert \lambda)\right)p(\lambda)}{\int^{+\infty}_{-\infty}  \left(\prod\limits_{i=1}^{n} p( x_{i} \vert \lambda)\right)p(\lambda) \mathrm{d}\lambda}$$
+>
+> where $$p(x_{i}\vert \lambda)$$ is the Poisson likelihood (the pmf evaluated continuously as a function of $$\lambda$$) for the measurement $$x_{i}$$ and $$p(\lambda)$$ is the prior pdf, which we assume to be uniform as previously.
+> 
+> We can implement this calculation in Python as follows:
+> ~~~
+> n_events = np.array([4,2,4,0,5,3,8,3])
+> # Create a grid of 1000 values of lambda to calculate the posterior over:
+> lam_array = np.linspace(0,20,1000)
+> 
+> # Here we assume a uniform prior. The prior probability should integrate to 1, 
+> # although since the normalisation of the prior divides out of Bayes' formula it could have been arbitrary 
+> prior = 1/20  
+> 
+> # This is the numerator in Bayes' formula, the likelihood multiplied by the prior. Note that we have to 
+> # reshape the events data array to be 2-dimensional, in the output array the 2nd dimension will 
+> # correspond to the lambda array values. Like np.sum, the numpy product function np.prod needs us to tell
+> # it which axis to take the product over (the data axis for the likelihood calculation)
+> likel_prior = np.prod(sps.poisson.pmf(n_events.reshape(len(n_events),1),mu=lam_array),axis=0)*prior
+> 
+> # We calculate the denominator (the "evidence") with one of the integration functions.
+> # The second parameter (x) is the array of parameter values we are integrating over.
+> # The axis is the axis of the array we integrate over (by default the last one but we will state 
+> # it explicitly as an argument here anyway, for clarity):
+> likel_prior_int = spint.simpson(likel_prior,lam_array,axis=0)
+> 
+> # Now we normalise and we have our posterior pdf for lambda!
+> posterior_pdf = likel_prior/likel_prior_int
+> # And plot it...
+> plt.figure()
+> plt.plot(lam_array,posterior_pdf)
+> plt.xlabel(r'$\lambda$',fontsize=12)
+> plt.ylabel(r'posterior density',fontsize=12)
+> plt.savefig('',bbox_inches='tight')
+> plt.show()
+> ~~~
+> {: .language-python}
+>
+> <p align='center'>
+> <img alt="Posterior for 8 samples" src="../fig/ep5_poiss_post_8samples.png" width="500"/>
+> </p>
+>
+> Now use the following code to randomly generate a new `n_events` array (with true $$\lambda=3.7$$), for $$10^{4}$$ measurements (maybe we have a superior detector rather than a very long research project...). Re-run the code above to calculate the posterior pdf for these data and see what happens. What causes the resulting problem, and how can we fix it?
+> ~~~
+> n_events = sps.poisson.rvs(mu=3.7,size=10000)
+> ~~~
+> {: .language-python}
+>
+>> ## Solution
+>> You should (at least based on current personal computers) obtain an error `RuntimeWarning: invalid value encountered in true_divide`. This arises because we are multiplying so many small but finite probabilities together when we calculate the likelihood, which approaches extremely small values as a result. Once the likelihood is small enough that the computer precision cannot handle it, it goes to zero and results in an error.
+>> 
+>> In a correct calculation, the incredibly small likelihood values would be normalised by their integral, also incredibly small, to obtain a posterior distribution with reasonable probabilities (which integrates to a total probability of 1). But the computation fails due to the precision issue before we can get there.
+>>
+>> So how can we fix this? There is a simple trick we can use, which is simply to convert the likelihoods to __log-likelihoods__ and take their sum, which is equivalent to the logarithm of the product of likelihoods. We can apply an arbitrary additive shift of the log-likelihood sum to more reasonable values before converting back to linear likelihood (which is necessary for integrating to obtain the evidence).  Since a shifted log-likelihood is equivalent to a renormalisation, the arbitrary shift cancels out when we calculate the posterior. Let's see how it works:
+>> ~~~
+>> # For this many measurements the posterior pdf will be much narrower - our previous lambda grid
+>> # will be too coarse with the old range of lambda, we will need to zoom in to a smaller range:
+>> lam_array = np.linspace(3,4,1000)
+>> 
+>> prior = 1/20  
+>> # We need to sum the individual log-likelihoods and also the log(prior):
+>> loglikel_prior = np.sum(np.log(sps.poisson.pmf(n_events.reshape(len(n_events),1),
+>>                                             mu=lam_array)),axis=0) + np.log(prior)
+>> 
+>> # We can shift the function maximum to zero in log units, i.e. unity in linear units.
+>> # The shift is arbitrary, we just need to make the numbers manageable for the computer.
+>> likel_prior = np.exp(loglikel_prior-np.amax(loglikel_prior))
+>> 
+>> likel_prior_int = spint.simpson(likel_prior,lam_array,axis=0)
+>> 
+>> print(likel_prior_int)
+>> # Now we normalise and we have our posterior pdf for lambda!
+>> posterior_pdf = likel_prior/likel_prior_int
+>> # And plot it...
+>> plt.figure()
+>> plt.plot(lam_array,posterior_pdf)
+>> plt.xlabel(r'$\lambda$',fontsize=12)
+>> plt.ylabel(r'posterior density',fontsize=12)
+>> plt.show()
+>> ~~~
+>> {: .language-python}
+>> 
+>>  <p align='center'>
+>>  <img alt="Posterior for 8 samples" src="../fig/ep5_poiss_post_1e4samples.png" width="500"/>
+>>  </p>
+>> 
+>> The posterior pdf is much more tightly constrained. In fact for these many measurements it should also be close
+>> to normally distributed, with a standard deviation of $$\lambda_{\rm true}/\sqrt{n}$$ (corresponding to the standard error), i.e. 0.037 for $$\lambda_{\rm true}=3.7$$.
+>>
+> {: .solution}
+{: .challenge}
+
 > ## Programming challenge: estimating $$g$$ by timing a pendulum
 > In a famous physics lab experiment, the swing of a pendulum can be used to estimate the gravitational acceleration at the Earth's surface $$g$$. Using the small-angle approximation, the period of the pendulum swing $$T$$, is related to $$g$$ and the length of the pendulum string $$L$$, via:
 >
