@@ -521,7 +521,7 @@ It's also useful to note that __a normally distributed variate added to another 
 > - $$s=0.5$$ and $$m=1$$.
 > - $$s=1$$ and $$m=1$$.
 > 
-> Also, use the functions `scipy.stats.skew` and `scipy.stats.kurtosis` to calculate the sample skew and kurtosis of your simulated variates for each value of $$n$$ and include the calculated values in the legends of your plots. Besides giving the simulated data array, you can use the default arguments for each function. These functions calculate the sample equivalents (i.e. for actual data) of the standardised skew and excess kurtosis.
+> Also, use the functions `scipy.stats.skew` and `scipy.stats.kurtosis` to calculate the sample skew and kurtosis of your sums of simulated variates for each value of $$n$$ and include the calculated values in the legends of your plots. Besides giving the simulated data array, you can use the default arguments for each function. These functions calculate the sample equivalents (i.e. for actual data) of the standardised skew and excess kurtosis.
 >
 > Based on your plots and your measurements of the sample skew and kurtosis for each $$n$$ considered, comment on what effect the skewness of the initial lognormal distribution has on how quickly a normal distribution is reached by summing variates.
 {: .challenge}
