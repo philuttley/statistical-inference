@@ -165,8 +165,8 @@ The diagonal elements correspond to the variances of each variable (since the co
 > # Calculate the bivariate joint pdf and for each variable marginalise (integrate) the joint pdf over the 
 > # other variable to obtain marginal pdfs for x and y
 > xypdf = bvn.pdf(xypos)
-> xpdf = spint.simpson(bvnorm,y,axis=1)
-> ypdf = spint.simpson(bvnorm,x,axis=0)
+> xpdf = spint.simpson(xypdf,y,axis=1)
+> ypdf = spint.simpson(xypdf,x,axis=0)
 > # Now define x and y ranges to calculate a 'slice' of the joint pdf, corresponding to the conditional pdfs
 > # for given x_0 and y_0
 > xrange = np.arange(-3,3,0.01)

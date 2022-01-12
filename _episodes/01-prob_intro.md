@@ -86,7 +86,7 @@ Now in our coin flip example, we know the total sample space is $$\Omega = \{HH,
 >> <p align='center'>
 >> <img alt="Dice solution 1" src="../fig/ep1_dice.png" width="500"/>
 >> </p>
->> There are 36 possible outcomes, so assuming they are equally probable, a single outcome has a probability of 1/36 ($$\simeq$$0.028). We can see that the region corresponding to $$A \mbox{ and } B$$ contains 2 outcomes, so $$P(A \mbox{ and } B)=2/36$$. Region $$A$$ contains 10 outcomes while region $$B$$ contains 6. $$P(A \mbox{ or } B)$$, which here corresponds to the number of _unique_ outcomes, is given by: $$P(A)+P(A)-P(A \mbox{ and } B)=(10+6-2)/36=7/18$$.
+>> There are 36 possible outcomes, so assuming they are equally probable, a single outcome has a probability of 1/36 ($$\simeq$$0.028). We can see that the region corresponding to $$A \mbox{ and } B$$ contains 2 outcomes, so $$P(A \mbox{ and } B)=2/36$$. Region $$A$$ contains 10 outcomes while region $$B$$ contains 6. $$P(A \mbox{ or } B)$$, which here corresponds to the number of _unique_ outcomes, is given by: $$P(A)+P(B)-P(A \mbox{ and } B)=(10+6-2)/36=7/18$$.
 > {: .solution}
 {: .challenge}
 
