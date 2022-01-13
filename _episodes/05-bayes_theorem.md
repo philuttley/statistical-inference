@@ -478,7 +478,7 @@ Provided that the probability densities of individual measurements can be calcul
 > 
 > $$1.98\pm0.02$$ s, $$2.00\pm0.01$$ s, $$2.05\pm0.03$$ s, $$1.99\pm0.02$$ s.
 >
-> You may assume that the experimental measurements are drawn from normal distributions around the true value of $$g$$, with distribution means equal to the true value of $$g$$ and standard deviations $$\sigma$$ equal to the error for that measurement. Assuming a uniform prior, use these measurements with Bayes' theorem to calculate the posterior probability distribution for $$g$$.
+> You may assume that the experimental measurements are drawn from normal distributions around the true value of $$T$$, with distribution means equal to the true value of $$T$$ and standard deviations $$\sigma$$ equal to the error for that measurement. Assuming a uniform prior, use these measurements with Bayes' theorem to calculate the posterior probability distribution for $$g$$ (__not__ T!).
 >
 > Then, show what happens if you add a very precise measurement to the existing data: $$2.004\pm0.001$$ s.
 >
