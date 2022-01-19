@@ -43,7 +43,7 @@ The sample means of each variate have the same meaning that they do in the univa
 
 $$\mu_{x} = E[X] = \int^{+\infty}_{-\infty} xp(x)\mathrm{d}x = \int^{+\infty}_{-\infty} x \int^{+\infty}_{-\infty} p(x,y)\mathrm{d}y\;\mathrm{d}x$$
 
-Since we know that the [__sample mean__]({{ page.root }}/reference/#mean) for a sample of $$n$$ measurements $$x_{i}$$, $$\bar{x}=\sum\limits_{i=1}^{n} x_{i}$$ is an unbiased estimator of the [__population mean__]({{ page.root }}/reference/#mean), we can calculate the sample mean for any of the quantities we measure and use it for standard univariate tests such as the $$Z$$-test or $$t$$-test, to compare with a known population mean for that quantity, or means from other samples of that quantity.
+Since we know that the [__sample mean__]({{ page.root }}/reference/#mean) for a sample of $$n$$ measurements $$x_{i}$$, $$\bar{x}=\frac{1}{n}\sum\limits_{i=1}^{n} x_{i}$$ is an unbiased estimator of the [__population mean__]({{ page.root }}/reference/#mean), we can calculate the sample mean for any of the quantities we measure and use it for standard univariate tests such as the $$Z$$-test or $$t$$-test, to compare with a known population mean for that quantity, or means from other samples of that quantity.
 
 The same arguments apply to the sample variance $$s^{2}_{x} = \frac{1}{n-1}\sum\limits_{i=1}^{n} (x_{i}-\mu)^{2}$$ and sample standard deviations and standard errors on the mean (recalling that the latter two quantities have a small bias which can usually be safely ignored for large sample sizes).
 
