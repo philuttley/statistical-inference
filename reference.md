@@ -225,6 +225,9 @@ prior
 probability distribution
 :   Distribution giving the relative frequencies of occurence of a [random variable](#random-variable) (or variables, for [bivariate](#bivariate) and [multivariate](#multivariate) distributions).
 
+propagation of errors
+:    TBD
+
 $$p$$-value
 :   A statistical test probability calculated for a given test statistic and assumptions about how the [test statistic](#test-statistic) is distributed (e.g. depending on the [null hypothesis](#hypothesis) and any other assumptions required for the test).
 
@@ -309,6 +312,9 @@ variance
 :   The (sample) variance $$s_{x}^{2}$$ for a quantity $$x_{i}$$ measured from a [sample](#sample) of data, is a [statistic](#statistic) calculated as the average of the squared deviations of the data values from the [sample mean](#mean) (corrected by [Bessel's correction](#Bessel's_correction)), i.e. $$\frac{1}{n-1} \sum\limits_{i=1}^{n} (x_{i}-\bar{x})^{2}$$. For a random variable $$X$$ defined by a [probability distribution](#probability-distribution) with [pdf](#pdf) $$p(x)$$, the ([population](#population) or distribution) variance $$V[X]$$ is the expectation value of the squared difference of the variable from its [mean](#mean) $$\mu$$, $$V[X] = E[(X-\mu)^{2}] = \int^{+\infty}_{-\infty} (x-\mu)^{2}p(x)\mathrm{d}x$$, which is equivalent to the expectation of squares minus the square of expectations of the variable, $$E[X^{2}]-E[X]^{2}$$. 
 
 weighted least squares
+:   TBD
+
+weighted mean
 :   TBD
 
 Z-statistic
