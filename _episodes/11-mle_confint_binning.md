@@ -60,7 +60,7 @@ $$X^{2}(\hat{\theta}\pm \Delta \theta)-X^{2}(\hat{\theta}) = F^{-1}_{\chi^{2}_{1
 
 In practice, this means that to calculate a 1-$$\sigma$$ confidence interval on a single parameter, we must calculate $$L(\theta)$$ vs. $$\theta$$ and find where $$L(\hat{\theta})-L(\theta)=1/2$$ (since $$F^{-1}_{\chi^{2}_{1}}(\alpha)=1$$ for $$\alpha=P(1\sigma)\simeq0.683$$). Or if we are using the weighted-least squares ('chi-squared') statistic, we simply look for $$X^{2}(\hat{\theta}\pm\Delta \theta)-X^{2}(\hat{\theta})=1$$. Thanks to [__Wilks' theorem__]({{ page.root }}/reference/#wilks-theorem) (which we will discuss later, when we consider hypothesis comparison), this approach also works for the case of multiple parameters when we require the confidence interval for an individual parameter. Provided we let the other [__free parameters__]({{ page.root }}/reference/#free-parameter) find their best fits (the MLEs), we can consider the change in log-likelihood or chi-squared as we step through a grid of fixed values for the parameter of interest.
 
-We demonstrate this approach for our Breit-Wigner model fit, with the programming example below.
+We demonstrate this approach for our Breit-Wigner model fit results from the previous episode, with the programming example below. Before starting, make sure you load the data and the model function from the previous episode.
 
 
 > ## Programming example: calculating and plotting 1-D confidence intervals
