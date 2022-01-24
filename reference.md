@@ -58,6 +58,9 @@ confidence interval
 confidence level
 :   Often used as an alternative form when stating the [significance level](#significance-level) ($$\alpha$$), it is expressed as 1 minus the significance when quoted as a percentage. E.g. _'the hypothesis is ruled out at the 95% confidence level'_ (for $$\alpha=0.05$$).
 
+confidence region
+:   TBD
+
 continuous
 :   Relating to a continuous [random variable](#random-variable), i.e. may take on a continuous and infinite number of possible values within a range specified by the corresponding continuous [probability distribution](#probability-distribution).
 
@@ -100,6 +103,9 @@ distributions - t
 distributions - uniform
 :   $$X\sim U(a,b)$$ has pdf $$p(x\vert a,b)=\mathrm{constant}$$ on interval $$[a,b]$$ (and zero elsewhere), and [location parameter](#parameter) $$a$$, [scale parameter](#parameter) $$\lvert b-a \rvert$$. Mean $$E[X] = (b+a)/2$$ and variance $$V[X] = (b-a)^{2}/12$$. Uniform [random variates](#random-variate) can be used to generate random variates from any other [probability distribution](#probability-distribution) via the [ppf](#ppf) of that distribution.
 
+error
+:   TBD
+
 estimator
 : A method for calculating from data an estimate of a given quantity. For example, the [sample mean](#mean) and [variance](#variance) are estimators of the [population mean](#mean) and [variance](#variance). See also: [bias](#bias), [MLE](#MLE).
 
@@ -118,8 +124,14 @@ false negative
 false positive
 :   TBD
 
+free parameter
+:   TBD
+
 frequentist
 :  Interpretation of probability which defines the probability of an event as the limit of its frequency in many independent [trials](#trial).
+
+Gaussian approximation
+:   See [normal approximation](#normal-approximation).
 
 goodness of fit
 :   TBD
@@ -157,6 +169,9 @@ likelihood ratio
 marginalisation
 :   The procedure of removing [conditional](#conditional-probability) terms from a probability distribution by summing over them, e.g. for discrete [event](#event) $$B$$ and multiple [mutually exclusive](#mutual-exclusivity) events $$A_{i}$$, $$P(B)= \sum\limits_{i=1}^{n} P(B\vert A_{i}) P(A_{i})$$. For a [continuous](#continuous) [joint probability distribution](#joint-probability-distribution), marginalisation corresponds to integration over the conditional parameter, e.g. $$p(x) = \int_{-\infty}^{+\infty} p(x,y)dy = \int_{-\infty}^{+\infty} p(x\vert y)p(y)\mathrm{d}y$$.
 
+maximum likelihood estimation
+:   TBD
+
 mean
 :   The (sample) mean $$\bar{x}$$ for a quantity $$x_{i}$$ measured from a [sample](#sample) of data is a [statistic](#statistic) calculated as the average of the quantity, i.e. $$\frac{1}{n} \sum\limits_{i=1}^{n} x_{i}$$. For a random variable $$X$$ defined by a [probability distribution](#probability-distribution) with [pdf](#pdf) $$p(x)$$, the ([population](#population) or distribution) mean $$\mu$$ is the expectation value of the variable, $$\mu=E[X]=\int^{+\infty}_{-\infty} xp(x)\mathrm{d}x$$.
 
@@ -183,6 +198,9 @@ multivariate
 
 mutual exclusivity
 :   Two events are mutually exclusive if they cannot both occur, or equivalently the probability of one occurring is conditional on the other __not__ occurring. I.e. events $$A$$ and $$B$$ are mutually exclusive if $$P(A \mbox{ and } B)=0$$ which occurs if $$P(A\vert B)=0$$. For mutually exclusive events, it follows that $$P(A \mbox{ or } B)=P(A)+P(B)$$.
+
+normal approximation
+:   TBD
 
 object
 :   A collection of conceptually related python variables ([members](#member)) and functions using those variables ([methods](#method)).
@@ -315,6 +333,9 @@ weighted least squares
 :   TBD
 
 weighted mean
+:   TBD
+
+Wilks' theorem
 :   TBD
 
 Z-statistic
