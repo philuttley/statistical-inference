@@ -166,6 +166,9 @@ likelihood function
 likelihood ratio
 :   TBD
 
+log-likelihood ratio
+:   TBD
+
 marginalisation
 :   The procedure of removing [conditional](#conditional-probability) terms from a probability distribution by summing over them, e.g. for discrete [event](#event) $$B$$ and multiple [mutually exclusive](#mutual-exclusivity) events $$A_{i}$$, $$P(B)= \sum\limits_{i=1}^{n} P(B\vert A_{i}) P(A_{i})$$. For a [continuous](#continuous) [joint probability distribution](#joint-probability-distribution), marginalisation corresponds to integration over the conditional parameter, e.g. $$p(x) = \int_{-\infty}^{+\infty} p(x,y)dy = \int_{-\infty}^{+\infty} p(x\vert y)p(y)\mathrm{d}y$$.
 
