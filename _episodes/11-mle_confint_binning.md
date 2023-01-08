@@ -11,7 +11,10 @@ objectives:
 - "Learn how to bin up univariate data so that the counts per bin are approximately normal and weighted least-squares methods can be used to fit the data."
 - "Use the Poisson likelihood function to fit models to finely binned univariate data."
 keypoints:
-- ""
+- "For normally distributed MLEs, confidence intervals and regions can be calculated by finding the parameter values on either side of the MLE where the weighted least squares (or log-likelihood) gets larger (smaller) by a fixed amount, determined by the required confidence level and the chi-squared distribution (multiplied by 0.5 for log-likelihood) for degrees of freedom equal to the dimensionality of the confidence region (usually 1 or 2)."
+- "Confidence regions may be found using brute force grid search, although this is not efficient for joint confidence regions with multiple dimensions, in which case Markov Chain Monte Carlo fitting should be considered."
+- "Univariate data are typically binned into histograms (e.g. count distributions) and the models used to fit these data should be binned in the same way."
+- "If count distributions are binned to at least 20 counts/bin the errors remain close to normally distributed, so that weighted least squares methods may be used to fit the data and a goodness of fit obtained in the usual way. Binned data with fewer counts/bin should be fitted using minimisation of negative log-likelihood. The same approach can be used for other types of data which are not normally distributed about the 'true' values."
 ---
 
 <script src="../code/math-code.js"></script>
@@ -26,6 +29,7 @@ import matplotlib.pyplot as plt
 import scipy.stats as sps
 import scipy.optimize as spopt
 import scipy.interpolate as spinterp
+import scipy.integrate as spint
 ~~~
 {: .language-python}
 
@@ -40,9 +44,11 @@ import scipy.interpolate as spinterp
 
 ## Confidence intervals of normally distributed MLEs
 
-We have seen that `curve_fit` (alongside several other minimisation algorithms) returns the covariance matrix of the fitted parameters together with their MLEs. The variances (diagonal elements) in the covariance matrix can then be used to directly estimate the 1-$$\sigma$$ errors on each MLE, assuming that they are normally distributed. If they are not normally distributed, the variances can give an indication of the error but it will not be exact. 
+Optimisation methods such as `curve_fit` (alongside several other minimisation algorithms) return the covariance matrix of the fitted parameters together with their MLEs. The variances (diagonal elements) in the covariance matrix can then be used to directly estimate the 1-$$\sigma$$ errors on each MLE, assuming that they are normally distributed. Lmfit also uses this approach to directly infer error bars on the data which are output by the fit report.  
 
-It's also important to bear in mind that the covariance matrix estimated by `curve_fit` and other gradient-based minimisation algorithms are estimates obtained from the _Hessian_, i.e. the matrix of 2nd-order partial derivatives of log-likelihood (see above) and as such may also not be exact, even if the MLEs are normally distributed. For these situations, it is possible to numerically evaluate exact confidence intervals and regions for MLEs, under the [__normal approximation__]({{ page.root }}/reference/#normal-approximation), i.e. the assumption that those MLEs are normally distributed. First, consider the log-likelihood for a single model parameter $$\theta$$ with MLE $$\hat{\theta}$$. Assuming that the likelihood is normally distributed we can write the log-likelihood as:
+Note however that if the MLEs are not normally distributed, the variances can give an indication of the error but it will not be exact. 
+
+It's also important to bear in mind that the covariance matrix estimated by `curve_fit`, lmfit and other gradient-based minimisation algorithms are estimates obtained from the _Hessian_, i.e. the matrix of 2nd-order partial derivatives of log-likelihood (see above) and as such may also not be exact, even if the MLEs are normally distributed. For these situations, it is possible to numerically evaluate exact confidence intervals and regions for MLEs, under the [__normal approximation__]({{ page.root }}/reference/#normal-approximation), i.e. the assumption that those MLEs are normally distributed. First, consider the log-likelihood for a single model parameter $$\theta$$ with MLE $$\hat{\theta}$$. Assuming that the likelihood is normally distributed we can write the log-likelihood as:
 
 $$L(\theta) = constant - \frac{(\theta - \hat{\theta})^{2}}{2\sigma_{\theta}^{2}}$$ 
 
@@ -60,22 +66,23 @@ $$X^{2}(\hat{\theta}\pm \Delta \theta)-X^{2}(\hat{\theta}) = F^{-1}_{\chi^{2}_{1
 
 In practice, this means that to calculate a 1-$$\sigma$$ confidence interval on a single parameter, we must calculate $$L(\theta)$$ vs. $$\theta$$ and find where $$L(\hat{\theta})-L(\theta)=1/2$$ (since $$F^{-1}_{\chi^{2}_{1}}(\alpha)=1$$ for $$\alpha=P(1\sigma)\simeq0.683$$). Or if we are using the weighted-least squares ('chi-squared') statistic, we simply look for $$X^{2}(\hat{\theta}\pm\Delta \theta)-X^{2}(\hat{\theta})=1$$. Thanks to [__Wilks' theorem__]({{ page.root }}/reference/#wilks-theorem) (which we will discuss later, when we consider hypothesis comparison), this approach also works for the case of multiple parameters when we require the confidence interval for an individual parameter. Provided we let the other [__free parameters__]({{ page.root }}/reference/#free-parameter) find their best fits (the MLEs), we can consider the change in log-likelihood or chi-squared as we step through a grid of fixed values for the parameter of interest.
 
-We demonstrate this approach for our Breit-Wigner model fit results from the previous episode, with the programming example below. Before starting, make sure you load the data and the model function from the previous episode.
+In the approach that follows, we will use this so-called 'brute force' grid search method to calculate individual (1-D) and joint (2-D) confidence intervals for one or two parameters respectively, by defining our own functions for this purpose. Lmfit includes its own methods for these calculations. However, the current lmfit methods are suitable only for finding confidence intervals via weighted-least squares fitting, so they are not appropriate for more general log-likelihood fitting (e.g. of Poisson-distributed data). Therefore we focus first on our own more general approach, which we demonstrate for our Breit-Wigner model fit results from the previous episode, with the programming example below. Before starting, make sure you load the data and the model function from the previous episode.
 
 
 > ## Programming example: calculating and plotting 1-D confidence intervals
 >
-> First we must write a function, to run `curve_fit` for a grid of fixed values of the parameter we want a confidence interval for. `curve_fit` will automatically count the input parameter list for the model as [__free parameters__]({{ page.root }}/reference/#free-parameter), when it uses the model evaluations to find the minimum (i.e. it will let them vary to find the best fit). In order to keep one parameter frozen at the grid value, we will need to remove that parameter from the list we give to curve_fit and add it back in to the parameter list at the time `curve_fit` calls the model function:
+> First we must write a function, to run lmfit `minimize` for a grid of fixed values of the parameter we want a confidence interval for. In order to keep one parameter frozen at the grid value, we can edit the Parameters object to change the value to the grid value and freeze it at that value:
 > 
 > ~~~
-> def grid1d_chisqmin(a_index,a_range,a_steps,parm,model,xval,yval,dy):
->     '''Finds best the fit and then carries out chisq minimisation for a 1D grid of fixed parameters.
+> def grid1d_chisqmin(a_name,a_range,a_steps,parm,model,xdata,ydata,yerrs):
+>     '''Uses lmfit. Finds best the fit and then carries out chisq minimisation for a 1D grid of fixed 
+>        parameters.
 >        Input: 
->             a_index - index of 'a' parameter (in input list parm) to use for grid.
+>             a_name - string, name of 'a' parameter (in input Parameters object parm) to use for grid.
 >             a_range, a_steps - range (tuple or list) and number of steps for grid.
->             parm - parameter list for model to be fitted.
+>             parm - lmfit Parameters object for model to be fitted.
 >             model - name of model function to be fitted.
->             xval, dyval, dy - data x, y and y-error arrays
+>             xdata, ydata, yerrs - lists of data x, y and y-error arrays (as for the lmf_lsq_resid function)
 >         Output: 
 >             a_best - best-fitting value for 'a'
 >             minchisq - minimum chi-squared (for a_best)
@@ -84,19 +91,20 @@ We demonstrate this approach for our Breit-Wigner model fit results from the pre
 >     a_grid = np.linspace(a_range[0],a_range[1],a_steps)
 >     chisq_grid = np.zeros(len(a_grid))
 >     # First obtain best-fitting value for 'a' and corresponding chi-squared
->     ml_cfpars, ml_cfcovar = spopt.curve_fit(model, xval, yval, parm, sigma=dy)    
->     minchisq = np.sum(((yval-model(xval,*ml_cfpars))/dy)**2)
->     a_best = ml_cfpars[a_index]
->     # Now remove 'a' from the input parameter list, so this parameter may be frozen at the 
->     # grid value for each fit
->     free_parm = np.delete(parm,a_index)
->     # Now fit for each 'a' in the grid, to do so we must use a lambda function to insert the fixed 
->     # 'a' into the model function when it is called by curve_fit, so that curve_fit does not use 
->     # 'a' as one of the free parameters so it remains at the fixed grid value in the fit.
+>     set_function = Minimizer(lmf_lsq_resid, parm, fcn_args=(xdata, ydata, yerrs, model, True),
+>                              nan_policy='omit')
+>     result = set_function.minimize(method = 'leastsq')
+>     minchisq = result.chisqr
+>     a_best = result.params.valuesdict()[a_name]
+>     # Now fit for each 'a' in the grid, to do so we use the .add() method for the Parameters object
+>     # to replace the value of a_name with the value for the grid, setting vary=False to freeze it
+>     # so it cannot vary in the fit (only the other parameters will be left to vary)
 >     for i, a_val in enumerate(a_grid):
->         ml_cfpars, ml_cfcovar = spopt.curve_fit(lambda xval, 
->             *free_parm: model(xval, *np.insert(free_parm,a_index,a_val)), xval, yval, free_parm, sigma=dy)
->         chisq_grid[i] = np.sum(((yval-model(xval,*np.insert(ml_cfpars,a_index,a_val)))/dy)**2)
+>         parm.add(a_name,value=a_val,vary=False)
+>         set_function = Minimizer(lmf_lsq_resid, parm, fcn_args=(xdata, ydata, yerrs, model, True), 
+>                                                                 nan_policy='omit')
+>         result = set_function.minimize(method = 'leastsq')
+>         chisq_grid[i] = result.chisqr
 >     return a_best, minchisq, a_grid, chisq_grid 
 > ~~~
 > {: .language-python}
@@ -125,10 +133,19 @@ We demonstrate this approach for our Breit-Wigner model fit results from the pre
 >> ## Solution
 >> ~~~
 >> model = breitwigner
->> parm = [100., 130., 150.] # starting parameters for initial fit
+>> par_names = ['gam0','E0','N'] # Names of parameters in Parameters object
 >> n_steps = 1000  # Number of steps in our grids
->> par_ranges = [[108,112],[175,177],[202,208]]  # Ranges for each parameter - should aim for a few times
->>                                               # times 1-sigma error estimated from covariance
+>> # Ranges for each parameter - should aim for a few times times 1-sigma error estimated from covariance
+>> # We can specify by hand or use the values from the original minimize result if available:
+>> par_ranges = []
+>> for i, par_name in enumerate(par_names):
+>>     # range min/max are best-fitting value -/+ four times the estimated 1-sigma error from variances 
+>>     # (diagonals of covariance matrix)
+>>     par_min = result.params.valuesdict()[par_name] - 4*np.sqrt(result.covar[i,i])
+>>     par_max = result.params.valuesdict()[par_name] + 4*np.sqrt(result.covar[i,i])
+>>     par_ranges.append([par_min,par_max])
+>> #par_ranges = [[109,112],[175,177],[204,206]]   # if specified by hand
+>> print("Parameter ranges for grid:",par_ranges)
 >> # For convenience when plotting we will store our results in arrays, which we now set up:
 >> a_best = np.zeros(len(par_ranges))
 >> minchisq = np.zeros(len(par_ranges))
@@ -136,12 +153,14 @@ We demonstrate this approach for our Breit-Wigner model fit results from the pre
 >> chisq_grid = np.zeros((len(par_ranges),n_steps))
 >> a_int = np.zeros((len(par_ranges),2))
 >> 
->> delchisq = 1.0
->> par_names = ['Gamma_0','E_0','N'] # This is just to nicely print our results to the screen
+>> delchisq = 1.0  # For 1-sigma errors for a single parameter 
+>> 
 >> # Now do the grid calculation for each parameter:
 >> for i, par_range in enumerate(par_ranges):
->>     a_best[i], minchisq[i], a_grid[i,:], chisq_grid[i,:] = grid1d_chisqmin(i,par_range,n_steps,parm,model,
-  >>                              pion_clean['energy'],pion_clean['xsect'],pion_clean['error'])
+>>     params = Parameters()
+>>     params.add_many(('gam0',30),('E0',130),('N',150))
+>>     a_best[i], minchisq[i], a_grid[i,:], chisq_grid[i,:] = grid1d_chisqmin(par_names[i],par_range,n_steps,params,model,
+>>                              pion_clean['energy'],pion_clean['xsect'],pion_clean['error'])
 >>     a_int[i,:] = calc_error_chisq(delchisq,a_best[i],minchisq[i],a_grid[i,:],chisq_grid[i,:])
 >>     # Good presentation of results should round off MLE and errors to an appropriate number
 >>     # of decimal places. Here we choose 3 to demonstrate the symmetry of the errors, we 
@@ -159,14 +178,15 @@ We demonstrate this approach for our Breit-Wigner model fit results from the pre
 >>     ax.vlines(a_int[i,:],ymin=30,ymax=100,color='gray',linestyle='dotted')
 >>     ax.set_xlabel(par_xlabels[i],fontsize=12)
 >> ax1.set_ylabel(r'$\chi^{2}$',fontsize=12)
->> ax1.set_ylim(30,100)
+>> ax1.set_ylim(30,70)
 >> plt.show()
 >> ~~~
 >> {: .language-python}
 >>
 >> ~~~
->> MLE Gamma_0: 110.227 with errors: [-0.349  0.351]
->> MLE E_0: 175.821 with errors: [-0.168  0.167]
+>> Parameter ranges for grid: [[108.71757041641061, 111.73651025237999], [175.09961457409608, 176.5422151367783], [202.92102931158476, 207.1234726451053]]
+>> MLE gam0: 110.227 with errors: [-0.349  0.351]
+>> MLE E0: 175.821 with errors: [-0.168  0.167]
 >> MLE N: 205.022 with errors: [-0.489  0.49 ]
 >> ~~~
 >> {: .output}
@@ -210,13 +230,13 @@ Note that the $$k$$ corresponds to the number of parameters we would like to sho
 > First we define a new function which is the 2-D equivalent of our previous function for calculating 1-D confidence intervals.
 > 
 > ~~~
-> def grid2d_chisqmin(ab_index,ab_range,ab_steps,parm,model,xval,yval,dy):
+> def grid2d_chisqmin(ab_names,ab_range,ab_steps,parm,model,xdata,ydata,yerrs):
 >     '''Finds best fit and then carries out chisq minimisation for a 1D grid of fixed parameters.
 >        Input: 
->             ab_index - tuple/list with indices of 'a' and 'b' parameter (in input list parm) to use for grid.
+>             ab_names - tuple/list with names of 'a' and 'b' parameter (in input list parm) to use for grid.
 >             ab_range, ab_steps - range (nested tuple or list) and list/tuple with number of steps for grid
 >                 for parameters a and b.
->             parm - parameter list for model to be fitted.
+>             parm - lmfit Parameters object for model to be fitted.
 >             model - name of model function to be fitted.
 >             xval, dyval, dy - data x, y and y-error arrays
 >         Output: 
@@ -228,22 +248,22 @@ Note that the $$k$$ corresponds to the number of parameters we would like to sho
 >     b_grid = np.linspace(ab_range[1][0],ab_range[1][1],ab_steps[1])
 >     chisq_grid = np.zeros((len(a_grid),len(b_grid)))
 >     # First obtain best-fitting values for a and b and corresponding chi-squared
->     ml_cfpars, ml_cfcovar = spopt.curve_fit(model, xval, yval, parm, sigma=dy)    
->     minchisq = np.sum(((yval-model(xval,*ml_cfpars))/dy)**2)
->     ab_best = [ml_cfpars[ab_index[0]], ml_cfpars[ab_index[1]]]
->     # Now remove 'a' and 'b' from the input parameter list, so these parameters may be frozen at the 
->     # grid value for each fit
->     free_parm = np.delete(parm,ab_index)
->     # Now fit for each a and b in the grid, to do so we must use a lambda function to insert the fixed 
->     # a and b into the model function when it is called by curve_fit, so that curve_fit does not use 
->     # a or b as one of the free parameters so they remain at the fixed grid value in the fit.
+>     set_function = Minimizer(lmf_lsq_resid, parm, fcn_args=(xdata, ydata, yerrs, model, True),
+>                              nan_policy='omit')
+>     result = set_function.minimize(method = 'leastsq')
+>     minchisq = result.chisqr
+>     ab_best = [result.params.valuesdict()[ab_names[0]],result.params.valuesdict()[ab_names[1]]]
+>     # Now fit for each a and b in the grid, to do so we use the .add() method for the Parameters object
+>     # to replace the value of a_name, b_name with the values for that point in the grid, setting vary=False to
+>     # freeze them so they cannot vary in the fit (only the other parameters will be left to vary)
 >     for i, a_val in enumerate(a_grid):
+>         parm.add(ab_names[0],value=a_val,vary=False)
 >         for j, b_val in enumerate(b_grid):
->             ml_cfpars, ml_cfcovar = spopt.curve_fit(lambda xval, 
->             *free_parm: model(xval, *np.insert(np.insert(free_parm,ab_index[0],a_val),ab_index[1],b_val)), 
->                                                     xval, yval, free_parm, sigma=dy)
->             chisq_grid[i,j] = np.sum(((yval-model(xval,
->                             *np.insert(np.insert(ml_cfpars,ab_index[0],a_val),ab_index[1],b_val)))/dy)**2)
+>             parm.add(ab_names[1],value=b_val,vary=False)
+>             set_function = Minimizer(lmf_lsq_resid, parm, fcn_args=(xdata, ydata, yerrs, model, True), 
+>                                                                 nan_policy='omit')
+>             result = set_function.minimize(method = 'leastsq')
+>             chisq_grid[i,j] = result.chisqr    
 >         print(str((i+1)*len(b_grid))+' out of '+str(len(a_grid)*len(b_grid))+' grid-points calculated')
 >     return ab_best, minchisq, a_grid, b_grid, chisq_grid 
 > ~~~
@@ -253,12 +273,24 @@ Note that the $$k$$ corresponds to the number of parameters we would like to sho
 > 
 > ~~~
 > model = breitwigner
-> parm = [100., 130., 150.] # starting parameters for initial fit
-> par_indices = [0,1]
-> par_ranges = [[108,112],[175,177]]
-> par_steps = [100,100]
-> ab_best, minchisq, a_grid, b_grid, chisq_grid  = grid2d_chisqmin(par_indices,par_ranges,par_steps,
-> parm,model,pion_clean['energy'],pion_clean['xsect'],pion_clean['error'])
+> params = Parameters()
+> params.add_many(('gam0',30),('E0',130),('N',150))
+> par_names = ['gam0','E0'] # Names of parameters for grid search
+> par_steps = [100,100]  # Number of steps in our grids
+> # Ranges for each parameter - should aim for a few times times 1-sigma error estimated from covariance
+> # We can specify by hand or use the values from the original minimize result if available:
+> par_ranges = []
+> for i, par_name in enumerate(par_names):
+>     # range min/max are best-fitting value -/+ five times the estimated 1-sigma error from variances 
+>     # (diagonals of covariance matrix)
+>     par_min = result.params.valuesdict()[par_name] - 5*np.sqrt(result.covar[i,i])
+>     par_max = result.params.valuesdict()[par_name] + 5*np.sqrt(result.covar[i,i])
+>     par_ranges.append([par_min,par_max])
+> #par_ranges = [[109,112],[175,177]]   # if specified by hand
+> print("Parameter ranges for grid:",par_ranges)
+> 
+> ab_best, minchisq, a_grid, b_grid, chisq_grid  = grid2d_chisqmin(par_names,par_ranges,par_steps,
+>                     params,model,pion_clean['energy'],pion_clean['xsect'],pion_clean['error'])
 > ~~~
 > {: .language-python}
 >
@@ -405,7 +437,7 @@ We can see that the distributions are very close in their centres and deviate fo
 > {: .solution}
 {: .challenge}
 
-Now we have 'binned up' our data with at least 20 counts/bin we are ready to fit a model to it, using a weighted least-squares method such as `curve_fit`. However, before we do so, we must remember that the expected Poisson rate parameter for the bin, which is our model estimate for the number of counts, is:
+Now we have 'binned up' our data with at least 20 counts/bin we are ready to fit a model to it, using a weighted least-squares method such as the approach we have been using with lmfit. However, before we do so, we must remember that the expected Poisson rate parameter for the bin, which is our model estimate for the number of counts, is:
 
 $$\lambda_{i} = \lambda_{\rm total} \int^{\epsilon_{i}+\Delta_{i}/2}_{\epsilon_{i}-\Delta_{i}/2} p(E)\mathrm{d}E$$
 
@@ -414,68 +446,115 @@ where we have now replaced the variable $$x$$ with energy $$E$$, specific to our
 2.  Python offers numerical methods to calculate the definite integral for a given function (e.g. in `scipy.integrate`).
 3.  If you are fitting a model which is itself a statistical distribution in Python, you could use the cdf of the distribution to determine the integral between two values.  Note that in this case you may have to scale the distribution accordingly, to match your spectrum (e.g. the integral of the pdf would no longer be 1.0, but would be the total number of counts in the spectrum).
 
-We'll now define two functions. First, a power-law model, to fit to our data. Then we will define a general function that can integrate a `curve_fit` model function and obtain a predicted counts density, if the bin edges are provided:
+To allow for fitting binned data in lmfit, while keeping the model format unchanged, we can create a new function to calculate for any given model $$y_{\rm mod}(x)$$ the average counts density per bin (i.e. model integrated over the bin and then divided by bin width). We will also create a new version of our lmfit objective function which uses this new model integration function.
 
 ~~~
-def pl_model(x, parm):
-    '''Simple power-law function.
+def model_bin(xbins, model, params):
+    '''General function for integrating the input model over bins defined by contiguous (no gaps) 
+        bin edges, xbins.
        Inputs:
-           x - input x value(s) (can be list or single value).
-           parm - parameters, list of PL normalisation (at x = 1) and power-law index.
-           '''
-    pl_norm = parm[0]  # here the function given means that the normalisation corresponds to that at a value 1.0
-    pl_index = parm[1]
-    return pl_norm * x**pl_index
-
-def model_int_cf(ecent, ebins, model, *parm):
-    '''General function for integrating the input model over energy bins ebins within curve_fit.
-       Inputs:
-           ecent - energy bin centres, dummy array with length len(ebins)-1 to fool curve_fit into 
-                   accepting the function as the correct format for curve_fit.
-           ebins - energy bin edges.
-           model, parm - the curve_fit model name and input parameter list.
+           xbins - x bin edges.
+           model, params - the model name and associated Parameters object.
        Outputs:
            ymod - calculated counts-density model values for y-axis.'''
     i = 0
-    ymod = np.zeros(len(ecent))
-    for energy in ebins[:-1]:
-        ymod[i], ymoderr = spint.quad(lambda x: model(x, parm),ebins[i],ebins[i+1])
-        ymod[i] = ymod[i]/(ebins[i+1]-ebins[i])  # we now divide by the bin width to match the counts density
+    ymod = np.zeros(len(xbins)-1)
+    for i, xval in enumerate(xbins[:-1]):
+        ymod[i], ymoderr = spint.quad(lambda x: model(x, params),xbins[i],xbins[i+1])
+        ymod[i] = ymod[i]/(xbins[i+1]-xbins[i])  # we now divide by the bin width to match the counts density
         # units of our data
-        i=i+1
     return ymod
+
+def lmf_lsq_binresid(params,xdata,ydata,yerrs,model,output_resid=True):
+    '''lmfit objective function to calculate and return residual array or model y-values for
+        binned data where the xdata are the input bin edges and ydata are the densities (integral over bin
+        divided by bin width).
+        Inputs: params - name of lmfit Parameters object set up for the fit.
+                xdata, ydata, yerrs - lists of 1-D arrays of x (must be bin edges not bin centres) 
+                and y data and y-errors to be fitted.
+                    E.g. for 2 data sets to be fitted simultaneously:
+                        xdata = [x1,x2], ydata = [y1,y2], yerrs = [err1,err2], where x1, y1, err1
+                        and x2, y2, err2 are the 'data', sets of 1-d arrays of length n1 (n1+1 for x2
+                        since it is bin edges), n2 (n2+1 for x2) respectively, 
+                        where n1 does not need to equal n2.
+                    Note that a single data set should also be given via a list, i.e. xdata = [x1],...
+                model - the name of the model function to be used (must take params as its input params and
+                        return the model y-value array for a given x-value array).
+                output_resid - Boolean set to True if the lmfit objective function (residuals) is
+                        required output, otherwise a list of model y-value arrays (corresponding to the 
+                        input x-data list) is returned.
+        Output: if output_resid==True, returns a residual array of (y_i-y_model(x_i))/yerr_i which is
+            concatenated into a single array for all input data errors (i.e. length is n1+n2 in 
+            the example above). If output_resid==False, returns a list of y-model arrays (one per input x-array)'''
+    if output_resid == True:
+        for i, xvals in enumerate(xdata):  # loop through each input dataset and record residual array
+            if i == 0:
+                resid = (ydata[i]-model_bin(xdata[i],model,params))/yerrs[i]
+            else:
+                resid = np.append(resid,(ydata[i]-model_bin(xdata[i],model,params))/yerrs[i])
+        return resid
+    else:
+        ymodel = []
+        for i, xvals in enumerate(xdata): # record list of model y-value arrays, one per input dataset
+            ymodel.append(model_bin(xdata[i],model,params))
+        return ymodel
 ~~~
 {: .language-python}
 
-Note that the power-law model function should not unpack its parameter list, so that it can work with `scipy.integrate.quad`. The parameter list is required to be unpacked only for the model which interfaces with `curve_fit`, which is the general integration function `model_int_cf` in this case.  With these functions we can now fit our binned data using `curve_fit`:
+To fit the data, we next define a power-law model function and Parameters object with starting values:
+
+~~~
+def pl_model(x, params):
+    '''Simple power-law function.
+       Inputs:
+           x - input x value(s) (can be list or single value).
+           params - lmfit Parameters object: PL normalisation (at x = 1) and power-law index.'''
+    v = params.valuesdict()
+    return v['N'] * x**v['gamma']
+
+params = Parameters()
+params.add_many(('N',2500),('gamma',-1.5))
+~~~
+{: .language-python}
+
+Next we set up our `Minimizer` function and input parameters. The approach is the same as for our previous Breit-Wigner model fit, with the data included in lists as required by our objective function. In addition to printing the fit report, we will also print out the chi-squared and degrees-of-freedom along with the corresponding goodness of it.
 
 ~~~
 model = pl_model
-p0 = [2500.0, -1.5]  # Initial power-law parameters
-ml_cfpars, ml_cfcovar = spopt.curve_fit(lambda energies, *parm: model_int_cf(energies, edges2, model, *parm),
-                                        energies, cdens, p0, sigma=cdens_err)
-err = np.sqrt(np.diag(ml_cfcovar))
-print("Covariance matrix:",ml_cfcovar)
-
-print("Normalisation at 1 GeV = " + str(ml_cfpars[0]) + " +/- " + str(err[0]))
-print("Power-law index = " + str(ml_cfpars[1]) + " +/- " + str(err[1]))
-minchisq = np.sum(((cdens - model_int_cf(energies, edges2, model, *ml_cfpars))/cdens_err)**2.)
-
-print("Minimum Chi-squared = " + str(minchisq) + " for " + str(len(cdens)-len(p0)) + " d.o.f.")
-print("The goodness of fit is: " + str(sps.chi2.sf(minchisq,df=(len(cdens)-len(p0)))))
+output_resid = True
+xdata = [edges2]
+ydata = [cdens]
+yerrs = [cdens_err]
+set_function = Minimizer(lmf_lsq_binresid, params, fcn_args=(xdata, ydata, yerrs, model, output_resid),nan_policy='omit')
+result = set_function.minimize(method = 'leastsq')
+report_fit(result)
+print("Minimum Chi-squared = "+str(result.chisqr)+" for "+str(result.nfree)+" d.o.f.")
+print("The goodness of fit is: ",sps.chi2.sf(result.chisqr,df=result.nfree))
 ~~~
 {: .language-python}
 ~~~
-Covariance matrix: [[ 1.38557897e+05 -1.43587826e+01]
- [-1.43587826e+01  1.57030675e-03]]
-Normalisation at 1 GeV = 2695.8605004131714 +/- 372.23365894181904
-Power-law index = -1.5725093885531372 +/- 0.0396270962109368
-Minimum Chi-squared = 20.652085891889353 for 20 d.o.f.
-The goodness of fit is: 0.41785865938156186
+[[Fit Statistics]]
+    # fitting method   = leastsq
+    # function evals   = 13
+    # data points      = 22
+    # variables        = 2
+    chi-square         = 20.6520859
+    reduced chi-square = 1.03260429
+    Akaike info crit   = 2.60902520
+    Bayesian info crit = 4.79111011
+[[Variables]]
+    N:      2695.86051 +/- 372.233648 (13.81%) (init = 2500)
+    gamma: -1.57250939 +/- 0.03962710 (2.52%) (init = -1.5)
+[[Correlations]] (unreported correlations are < 0.100)
+    C(N, gamma) = -0.973
+Minimum Chi-squared = 20.65208589188919 for 20 d.o.f.
+The goodness of fit is:  0.41785865938157196
 ~~~
 {: .output}
 
-To compare our best-fitting model with the data, it is useful to plot the model as a stepped histogram function. To do this we need to make use of the `weights` parameter of `plt.hist`, so that we can give the histogram function a bespoke set of $$y$$-values for the histogram plot. We also compare the model to data by plotting the data/model ratio. For a model with a large dynamic range of $$y$$-axis values such as a power-law, the deviations of the data from the model are best shown as a ratio, as absolute differences would be dominated by the values where $$y$$ is largest.
+A good fit is obtained! It's interesting to note that the power-law index and the power-law normalisation are very strongly (anti-)correlated. This is typical for models which fit steep slopes to the data, since a change in the slope will lead to a compensating change in the normalisation to maintain a reasonable fit to the data (one way to think about this is that the model 'pivots' around the average $$x$$ and $$y$$ values of the data which hold the model in place there).
+
+If we plot our best-fitting model against the data, we can make a better-informed judgement about whether it is a good fit and whether there are any features in the data which the model cannot explain. To compare our best-fitting model with the data, it is useful to plot the model as a stepped histogram function. To do this we need to make use of the `weights` parameter of `plt.hist`, so that we can give the histogram function a bespoke set of $$y$$-values for the histogram plot. We also compare the model to data by plotting the data/model ratio. For a model with a large dynamic range of $$y$$-axis values such as a power-law, the deviations of the data from the model are best shown as a ratio, as absolute differences would be dominated by the values where $$y$$ is largest.
 
 ~~~
 def plot_spec_model(ebins,cdens,cdens_err,cdens_model):
@@ -511,10 +590,14 @@ def plot_spec_model(ebins,cdens,cdens_err,cdens_model):
     # at the boundaries.
     plt.show()
 
-# Return the model y-values for model with parameters equal to the MLEs
-best_model = model_int_cf(energies, edges2, model, *ml_cfpars)
+# To calculate the best-fitting model values, use the parameters of the best fit output
+# from the fit, result.params and set output_resid=false to output a list of model y-values:
+model_vals = lmf_lsq_binresid(result.params,xdata,ydata,yerrs,model,output_resid=False)
 # Now plot the data and model and residuals
-plot_spec_model(edges2,cdens,cdens_err,best_model)
+print(len(model_vals),len(edges2),len(cdens))
+# The plotting function we defined takes the array of model values, so we must
+# specify the index for the model_vals list, to provide this array
+plot_spec_model(edges2,cdens,cdens_err,model_vals[0]) 
 ~~~
 {: .language-python}
 
@@ -529,54 +612,102 @@ We could go further and calculate the confidence intervals and plot confidence c
 
 In some cases when we are modelling data as counts in bins, we may not want to rebin our data to achieve at least 20 counts per bin.  Perhaps we don't have sufficient counts to bin up, or we want to preserve the resolution of our data to take the opportunity to look for narrow features at energies where the counts are sparse (such features may be smeared out if we use wide bins, but could be significant if several counts appear close together in energy).  Or perhaps we don't care about getting a goodness-of-fit and therefore don't want to use weighted-least-squares as our likelihood statistic.  In these cases an alternative option will be to use the Poisson distribution to generate our likelihood function, so we do not care whether there are sufficient counts in a bin (or even if the bins are empty: with a Poisson distribution having zero counts in a bin is possible for small rate parameters and therefore conveys useful information!).
 
-Unlike `curve_fit`, which takes a model function and then calculates the chi-squared statistic (and minimises it) 'under the hood', for minimising a log-likelihood we need to call the log-likelihood function itself with the minimisation function. That means we must integrate over the data bins inside the log-likelihood function. For minimisation purposes, we will use `scipy.optimize.minimize` with `method=BFGS`, corresponding to the _Broyden–Fletcher–Goldfarb–Shanno algorithm_ which is a gradient method that will provide us with an estimate of the inverse Hessian - i.e. the covariance matrix - of our likelihood function. Note that since the Poisson likelihood compares the observed and model-predicted _counts_ (not count density), we need to be careful to give the data to the function in those units. For plotting purposes however, we could still plot counts density using our original plotting function with the non-rebinned histograms and the corresponding model.
+In situations where data are not normally distributed (about the 'true' value), weighted least squares is not appropriate to fit the data, but we can directly maximise the log-likelihood instead, or equivalently, minimise the negative log-likelihood. This approach can be used for Poisson data, as well as for other situations where the data are not normally distributed. For Poisson counts data, that means we must integrate over the data bins inside the log-likelihood function. In lmfit, we need to change the objective function to return the summed negative log-likelihood for our data conditional on the model. This is a scalar quantity so we also need to change the `Minimizer` method to `scalar_minimize`, which uses Nelder-Mead optimisation as the default (but can be changed to other methods). Note that since the Poisson likelihood compares the observed and model-predicted _counts_ (not count density), we need to be careful to give the data to the function in those units. For plotting purposes however, we could still plot counts density using our original plotting function with the non-rebinned histograms and the corresponding model.
+
+We first define a function to calculate the summed negative log-likelihood, using the `logpmf` method which is more accurate and reliable than determining the pmf and then separately taking the log. Then we define a new version of our lmfit objective function (for binned data), to return the summed negative log-likelihood for the input dataset(s).
 
 ~~~
-def LogLikelihood_Pois_Integ(parm, model, ebins, counts): 
-    '''Calculate the negative Poisson log-likelihood for a model integrated over bins. 
+def LogLikelihood_Pois(model_counts, counts): 
+    '''Calculate the negative Poisson log-likelihood for a model vs counts data. 
        Inputs:
-           parm - model parameter list.
-           model - model function name.
-           ebins, counts - energy bin edges and corresponding counts per bin.
+           model_counts - array of predicted model counts per bin
+           counts - data: observed counts per bin.
         Outputs: the negative Poisson log-likelihood'''
-    i = 0
-    ymod = np.zeros(len(counts))
-    for energy in ebins[:-1]:
-        ymod[i], ymoderr = spint.quad(lambda x: model(x, parm),ebins[i],ebins[i+1])
-        # we don't normalise by bin width since the rate parameter is set by the model and needs to be 
-        # in counts per bin
-        i=i+1        
-    pd = sps.poisson(ymod) #we define our Poisson distribution
-    return -sum(pd.logpmf(counts))
+    pd = sps.poisson(model_counts) #we define our Poisson distribution
+    return -1*np.sum(pd.logpmf(counts))
 
-parm = [2500.0, -1.5]
-# We use our original counts bins.  Also, remember that the Likelihood function we have just defined uses 
-# counts rather than count density
-result = spopt.minimize(LogLikelihood_Pois_Integ, parm, args=(pl_model, edges, counts), method='BFGS')
+def lmf_poissll(params,xdata,ydata,model,output_ll=True):
+    '''lmfit objective function to calculate and return total negative Poisson log-likelihood or model 
+        y-values for binned data where the xdata are the contiguous (i.e. no gaps) input bin edges and 
+        ydata are the counts (not count densities) per bin.
+        Inputs: params - name of lmfit Parameters object set up for the fit.
+                xdata, ydata - lists of 1-D arrays of x (must be bin edges not bin centres) 
+                and y data and y-errors to be fitted.
+                    E.g. for 2 data sets to be fitted simultaneously:
+                        xdata = [x1,x2], ydata = [y1,y2], yerrs = [err1,err2], where x1, y1, err1
+                        and x2, y2, err2 are the 'data', sets of 1-d arrays of length n1 (n1+1 for x2
+                        since it is bin edges), n2 (n2+1 for x2) respectively, 
+                        where n1 does not need to equal n2.
+                    Note that a single data set should also be given via a list, i.e. xdata = [x1],...
+                model - the name of the model function to be used (must take params as its input params and
+                        return the model y counts density array for a given x-value array).
+                output_resid - Boolean set to True if the lmfit objective function (total -ve 
+                        log-likelihood) is required output, otherwise a list of model y-value arrays 
+                        (corresponding to the input x-data list) is returned.
+        Output: if output_resid==True, returns the total negative log-likelihood. If output_resid==False, 
+                returns a list of y-model counts density arrays (one per input x-array)'''
+    if output_ll == True:
+        poissll = 0
+        for i, xvals in enumerate(xdata):  # loop through each input dataset to sum negative log-likelihood
+                # We can re-use our model binning function here, but the model then needs to be converted into 
+                # counts units from counts density, by multiplying by the bin widths
+                ymodel = model_bin(xdata[i],model,params)*np.diff(xdata[i])
+                # Then obtain negative Poisson log-likelihood for data (in counts units) vs the model 
+                poissll = poissll + LogLikelihood_Pois(ymodel,ydata[i])
+        return poissll
+    else:
+        ymodel = []
+        for i, xvals in enumerate(xdata): # record list of model y-value arrays, one per input dataset
+            ymodel.append(model_bin(xdata[i],model,params))
+        return ymodel
+~~~
+{: .language-python}
 
-err = np.sqrt(np.diag(result.hess_inv))
-print("Covariance matrix:",result.hess_inv)
-print("Normalisation at 1 GeV = " + str(result.x[0]) + " +/- " + str(err[0]))
-print("Power-law index = " + str(result.x[1]) + " +/- " + str(err[1]))
-print("Maximum log-likelihood = " + str(-1.0*result.fun))
+We now run the model on our data without rebinning (i.e. using the original `edges` and `counts` arrays). Note that we use the counts array rather than count densities. The chi-squared in the fit report does not mean anything for Poisson data, but we can use `report.residual` to output the best-fitting result of the objective function, multiplying by -1 to give the log-likelihood. Note that without the renormalisation in Bayes' formula the log-likelihood does not tell us much about how well the model is described by the data. However, differences in log-likelihood can still be used to calculate confidence intervals, and for setting limits and hypothesis testing (see next episode).
+
+~~~
+params = Parameters()
+params.add_many(('N',2500),('gamma',-1.5))
+params.add('gamma',value=-1.5,vary=True)
+model = pl_model
+output_ll = True
+xdata = [edges]
+ydata = [counts]
+set_function = Minimizer(lmf_poissll, params, fcn_args=(xdata, ydata, model, output_ll),
+                         nan_policy='omit',calc_covar=True)
+result = set_function.scalar_minimize(method='Nelder-Mead') # We specify the method for completeness, 
+                                                            # but Nelder-Mead is the default
+report_fit(result)
+print("Summed log-likelihood = ",-1*result.residual)
 ~~~
 {: .language-python}
 
 ~~~
-Covariance matrix: [[ 9.91489509e+04 -1.08730614e+01]
- [-1.08730614e+01  1.26924350e-03]]
-Normalisation at 1 GeV = 2555.1950763371633 +/- 314.8792639253478
-Power-law index = -1.5509355551083952 +/- 0.03562644377101803
-Maximum log-likelihood = -126.29341311424112
+[[Fit Statistics]]
+    # fitting method   = Nelder-Mead
+    # function evals   = 108
+    # data points      = 1
+    # variables        = 2
+    chi-square         = 15950.0258
+    reduced chi-square = 15950.0258
+    Akaike info crit   = 13.6772157
+    Bayesian info crit = 9.67721572
+##  Warning: uncertainties could not be estimated:
+[[Variables]]
+    N:      2555.59555 (init = 2500)
+    gamma: -1.55096712 (init = -1.5)
+Summed log-likelihood =  [-126.2934115]
 ~~~
 {: .output}
 
-Comparison with the results for the binned-up histogram fitted with `curve_fit` shows good agreement!
+Comparison with the results for the binned-up histogram fitted with weighted least squares shows agreement within the errors, although the MLEs are not identical. This is not surprising since the data values and assumptions going into each fit are different.
+
+Unfortunately, although the Hessian (and covariance matrix) could in principle be calculated by the fit, lmfit does not yet have this functionality for a scalar output from the objective function. Therefore we cannot estimate errors from the initial fit like we can with weighted least squares in lmfit. We should instead calculate them directly using brute force grid search, which you can attempt in the programming challenge which follows.
 
 
 > ## Programming challenge: confidence regions for Poisson event data
 >
-> Now use the data in `photon_energies.txt` provided for this episode, with weighted least-squares to calculate a 2-D confidence region on the power-law MLEs, plotting your result as a contour plot. Then repeat this exercise for the unbinned histogram with Poisson likelihood function, and compare your contour plots to see if the two approaches to the data give similar results.
+> Now use the data in `photon_energies.txt` provided for this episode, with weighted least-squares to calculate 1-D and 2-D confidence regions on the power-law MLEs, plotting your results as for the Breit-Wigner example for non-binned data above. Then repeat this exercise for the unbinned histogram with Poisson likelihood function, and compare your confidence regions to see if the two approaches to the data give similar results.  Remember that the log-likelihood and the weighted least squares statistic are simply related, such that the confidence intervals for log-likelihood correspond to a change in negative log-likelihood equal to half the corresponding change for the weighted least squares statistic! 
 > 
 {: .challenge}
 

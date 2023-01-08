@@ -14,8 +14,8 @@ keypoints:
 - "Given a set of data and a model with free parameters, the best unbiased estimators of the model parameters correspond to the maximum likelihood and are called Maximum Likelihood Estimators (MLEs)."
 - "In the case of normally-distributed data, the log-likelihood is formally equivalent to the weighted least squares statistic (also known as the chi-squared statistic)."
 - "MLEs can be obtained by maximising the (log-)likelihood or minimising the weighted least squares statistic (chi-squared minimisation)."
-- "The scipy function `curve_fit` is optimised to carry out weighted least-squares fitting of models to data."
-- "The errors on MLEs can be estimated from the diagonal elements of the covariance matrix obtained from the fit, if the fitting method returns it."
+- "The Python package lmift can be used to fit data efficiently, and the `leastsq` minimisation method is optimised to carry out weighted least-squares fitting of models to data."
+- "The errors on MLEs can be estimated from the diagonal elements of the covariance matrix obtained from the fit, if the fitting method returns it. These errors are returned directly in the case of lmfit using "
 ---
 
 <script src="../code/math-code.js"></script>
@@ -133,13 +133,15 @@ Optimisation methods use algorithmic approaches to obtain either the minimum or 
 
 
 > ## Optimisation methods and the `scipy.optimize` module.
-> There are a variety of optimisation methods which are available in Python's `scipy.optimize` module. Many of these approaches are discussed in some detail in Chapter 10 of the book 'Numerical Recipes', available online [here][numrec_online]. Here we will give a brief summary of some of the main methods and their pros and cons for maximum likelihood estimation. An important aspect of most numerical optimisation methods, including the ones in scipy, is that they are _minimisers_, i.e. they operate to minimise the given function rather than maximise it. This works equally well for maximising the likelihood, since we can simply multiply the function by -1 and minimise it to achieve our maximisation result.
+> There are a variety of optimisation methods which are available in Python's `scipy.optimize` module. Many of these approaches are discussed in some detail in Chapter 10 of the book 'Numerical Recipes', available online [here][numrec_online]. Here we will give a brief summary of some of the main methods and their pros and cons for maximum likelihood estimation. An important aspect of most numerical optimisation methods, including the ones in scipy, is that they are _minimisers_, i.e. they operate to minimise the given function rather than maximise it. This works equally well for maximising the likelihood, since we can simply multiply the function by -1 and minimise it to achieve our maximisation result. 
 >
 > - __Scalar minimisation__: the function `scipy.optimize.minimize_scalar` has several methods for minimising functions of only one variable. The methods can be specified as arguments, e.g. `method='brent'` uses __Brent's method__ of parabolic interpolation: find a parabola between three points on the function, find the position of its minimum and use the minimum to replace the highest point on the original parabola before evaluating again, repeating until the minimum is found to the required tolerance. The method is fast and robust but can only be used for functions of 1 parameter and as no gradients are used, it does not return the useful 2nd derivative of the function.
 > - __Downhill simplex (Nelder-Mead)__: `scipy.optimize.minimize` offers the method `nelder-mead` for rapid and robust minimisation of multi-parameter functions using the 'downhill simplex' approach. The approach assumes a simplex, an object of $$n+1$$ points or vertices in the $$n$$-dimensional parameter space. The function to be minimised is evaluated at all the vertices. Then, depending on where the lowest-valued vertex is and how steep the surrounding 'landscape' mapped by the other vertices is, a set of rules are applied to move one or more points of the simplex to a new location. E.g. via reflection, expansion or contraction of the simplex or some combination of these. In this way the simplex 'explores' the $$n$$-dimensional landscape of function values to find the minimum. Also known as the 'amoeba' method because the simplex 'oozes' through the landscape like an amoeba!
 > - __Gradient methods__: a large set of methods calculate the gradients or even second derivatives of the function (hyper)surface in order to quickly converge on the minimum. A commonly used example is the __Broyden-Fletcher-Goldfarb-Shanno__ (__BFGS__) method (`method=BFGS` in `scipy.optimize.minimize` or the legacy function `scipy.optimize.fmin_bfgs`). A more specialised function using a variant of this approach which is optimised for fitting functions to data with normally distributed errors ('_weighted non-linear least squares_') is `scipy.optimize.curve_fit`. The advantage of these functions is that they usually return either a matrix of second derivatives (the 'Hessian') or its inverse, which is the _covariance matrix_ of the fitted parameters. These can be used to obtain estimates of the errors on the MLEs, following the normal approximation approach described in this episode.
 >
 > An important caveat to bear in mind with all optimisation methods is that for finding minima in complicated hypersurfaces, there is always a risk that the optimiser returns only a local minimum, end hence incorrect MLEs, instead of those at the true minimum for the function. Most optimisers have built-in methods to try and mitigate this problem, e.g. allowing sudden switches to completely different parts of the surface to check that no deeper minimum can be found there. It may be that a hypersurface is too complicated for any of the optimisers available. In this case, you should consider looking at _Markov Chain Monte Carlo_ methods to fit your data.
+>
+> In the remainder of this course we will use the Python package lmfit which combines the use of scipy's optimisation methods with some powerful functionality to control model fits and determine errors and confidence contours. 
 {: .callout}
 
 ## General maximum likelihood estimation: model fitting
@@ -262,11 +264,19 @@ This statistic is often called the chi-squared ($$\chi^{2}$$) statistic, and the
 {: .callout}
 
 
-## Weighted least squares in Python with `curve_fit`
+## Weighted least squares estimation in Python with the lmfit package
 
-We already saw how to use Scipy's `curve_fit` function to carry out a linear regression fit with error bars on $$y$$ values not included.  The `curve_fit` routine uses non-linear least-squares to fit a function to data (i.e. it is not restricted to linear least-square fitting) and if the error bars are provided it will carry out a weighted-least-squares fit, which is what we need to obtain a goodness-of-fit (see below).  As well as returning the MLEs, `curve_fit` also returns the covariance matrix evaluated at the minimum chi-squared, which allows errors on the MLEs to be estimated.
+We already saw how to use Scipy's `curve_fit` function to carry out a linear regression fit with error bars on $$y$$ values not included.  The `curve_fit` routine uses non-linear least-squares to fit a function to data (i.e. it is not restricted to linear least-square fitting) and if the error bars are provided it will carry out a weighted-least-squares fit, which is what we need to obtain a goodness-of-fit (see below).  As well as returning the MLEs, `curve_fit` also returns the covariance matrix evaluated at the minimum chi-squared, which allows errors on the MLEs to be estimated. However, while `curve_fit` can be used on its own to fit models to data and obtain MLEs and their errors, we will instead carry out weighted least squares estimation using the Python lmfit package, which enables a range of optimisiation methods to be used and provides some powerful functionality for fitting models to data and determining errors. We will use lmfit throughout the reminder of this course. It's documentation can be found [here][lmfit_doc], but it can be difficult to follow without some prior knowledge of the statistical methods being used. Therefore we advise you first to follow the tutorials given in this and the following episodes, before following the lmfit online documentation for a more detailed understanding of the package and its capabilities.
 
-An important difference between `curve_fit` and the other minimisation approaches discussed above, is that `curve_fit` implicitly calculates the weighted-least squares from the given model, data and errors.  I.e. we do not provide our `ChiSq` function given above, only our model function (which also needs a subtle change in inputs, see below). Note that the model parameters need to be unpacked for `curve_fit` to work (input parameters given by `*parm` instead of `parm` in the function definition arguments). The `curve_fit` function does not return the function value (i.e. the minimum chi-squared) as a default, so we need to use our own function to calculate this.  We'll demonstrate the approach with the following example, which we will follow throughout the rest of this episode.
+> ## Model fitting with lmfit, in a nutshell
+> Lmfit can be used to fit models to data by minimising the output (or sum of squares of the output) of a so-called _objective function_, which the user provides for the situation being considered. For weighted least squares, the objective function calculates and returns a vector of weighted residuals $$(y_{i} - y_{\rm model}(x_{i}))/err(y_{i})$$, while for general maximum likelihood estimation, the objective function should return a scalar quantity, such as the negative log-likelihood. The inputs to the objective function are the model itself (e.g. the name of a separate model function), the data ($$x$$ and $$y$$ values and $$y$$ errors), a special `Parameters` object which contains and controls the model parameters to be estimated (or assumed) and any other arguments to be used by the objective function. 
+> Lmfit is a highly developed package with considerably more (and more complex) functionality and classes than we will outline here. However, for simplicity and the purpose of this course, we present below some streamlined information about the classes which we will use for fitting models to data in this and following episodes.
+> 
+> - The `Parameters` object is a crucial feature of lmfit which enables quite complex constraints to be applied to the model parameters, e.g. freezing some and freeing others, or setting bounds which limit the range of parameter values to be considered by the fit, or even defining parameters using some expression of one or more of the other model parameters. A `Parameters` object is a dictionary of a number of separate `Parameter` objects (one per parameter) with keywords corresponding to the properties of the parameter, such as the `value` (which can be used to set the starting value or return the current value), `vary` (set `True` or `False` if the parameter is allowed to vary in the fit or is frozen at a fixed value), and `min` or `max` to set bounds. The `Parameters` object name must be the first argument given to the objective function that is minimised.
+> - The `Minimizer` object is used to set up the minimisation approach to be used. This includes specifying the objective function to be used, the associated `Parameters` object and any other arguments and keywords used by the objective function. Lmfit can use a wide variety of minimisation approaches from Scipy's `optimize` module as well as other modules (e.g. `emcee` for Markov Chain Monte Carlo - MCMC - fitting) and the approach to be used (and any relevant settings) are also specified when assigning a `Minimizer` object. The minimisation (i.e. the fit) is itself done by applying the `minimize()` method to the `Minimizer` object.
+> - The results of the fit (and more besides) are given by the `MinimizerResult` object, which is produced as the output of the `minimize()` method and includes the best-fitting parameter values (the MLEs), the best-fitting value(s) of the objective function and (if determined) the parameter covariance matrix, chi-squared and degrees of freedom and possibly other test statistics. Note that the `MinimizerResult` and `Minimizer` objects can also be used in other functions, e.g. to produce confidence contour plots or other useful outputs. 
+{: .callout}
+
 
 ### Fitting the energy-dependence of the pion-proton scattering cross-section
 
@@ -300,48 +310,120 @@ $$\Gamma(E)=\Gamma_{0} \left(\frac{E}{130 \mathrm{MeV}}\right)^{1/2}$$
 
 where $$\Gamma_{0}$$ is the width at 130 MeV. Thus we finally have a model for $$\sigma(E)$$ with $$N$$, $$E_{0}$$ and $$\Gamma_{0}$$ as its unknown parameters. 
 
-To use this model to fit the data with weighted least squares, we must write it as a function to be used by `curve_fit`. You should check the [online documentation][curve_fit_doc] for `curve_fit` carefully. The first `curve_fit` argument (`f`) is for the model function name. Then the `xdata` and `ydata` arrays for the input $$x$$ and $$y$$ data, followed by a list `p0` for the initial guess of the model parameters (which defines the starting point of the fit). Then we include the data errors `sigma`, followed by a number of optional arguments for more control of our fitting approach.
-
-First we should write the function to be used by `curve_fit` to fit the data:
+To use this model to fit the data with lmfit, we'll first import lmfit and the subpackages `Minimizer` and `report_fit`. Then we'll define a `Parameter` object, which we can use as input to the model function and objective function.
 
 ~~~
-def breitwigner(e_val,*parm):
+import lmfit as lmfit
+from lmfit import Minimizer, Parameters, report_fit
+
+params = Parameters()  # Assigns a variable name to an empty Parameters object
+params.add_many(('gam0',30),('E0',130),('N',150))  # Adds multiple parameters, specifying the name and starting value
+~~~
+{: .language-python}
+
+The initial parameter values (here $$\Gamma_{0}=30$$ MeV, $$E_{0}=130$$ MeV and $$N=150$$ mb) need to be chosen so that they are not so far away from the best-fitting parameters that the fit will get stuck, e.g. in a local-minimum, or diverge in the wrong direction away from the best-fitting parameters. You may have a physical motivation for a good choice of starting parameters, but it is also okay to plot the model on the same plot as the data and tweak the parameters so the model curve is at least not too far from most of the data. For now we only specified the values associated with the `name` and `value` keywords. We will use other Parameter keywords in the next episodes. We can output a dictionary of the `name` and `value` pairs, and also a tabulated version of all the parameter properties, using the `valuesdict` and `pretty_print` methods respectively:
+
+~~~
+print(params.valuesdict())
+params.pretty_print()
+~~~
+{: .language-python}
+
+~~~
+{'gam0': 30, 'E0': 130, 'N': 150}
+Name     Value      Min      Max   Stderr     Vary     Expr Brute_Step
+E0         130     -inf      inf     None     True     None     None
+N          150     -inf      inf     None     True     None     None
+gam0        30     -inf      inf     None     True     None     None
+~~~
+{: .output}
+
+We will discuss some of the other parameter properties given in the tabulated output (and currently set to the defaults) later on.
+
+Now that we have defined our `Parameters` object we can use it as input for a model function which returns a vector of model $$y$$ values for a given vector of $$x$$ values, in this case the $$x$$ values are energies `e_val` and the function is the version of the Breit-Wigner formula given above.
+
+~~~
+def breitwigner(e_val,params):
     '''Function for non-relativistic Breit-Wigner formula, returns pi-p interaction cross-section
     for input energy and parameters resonant width, resonant energy and normalisation.'''
-    gam0 = parm[0] 
-    E0 = parm[1]
-    N = parm[2]
-    gam=gam0*np.sqrt(e_val/130.)
-    return N*(gam**2/4)/((e_val-E0)**2+gam**2/4)
+    v = params.valuesdict()
+    gam=v['gam0']*np.sqrt(e_val/130.)
+    return v['N']*(gam**2/4)/((e_val-v['E0'])**2+gam**2/4)
 ~~~
 {: .language-python}
 
-Note that for `curve_fit` to be able to use the function correctly, the first argument should correspond to that data $$x$$-values, i.e. the explanatory variable, in our case the beam energies for each measurement.  The model parameters are given as a single list which will match the order `p0` array of initial guesses of the parameter values. By putting `*` in front of the parameter list name we unpack the list values when it is read into the function. This is also a requirement for `curve_fit`.
+Note that the variables are given by using the `valuesdict` method together with the parameter names given when assigning the `Parameters` object.
 
-Now we can set up our starting parameters and fit our data!  The initial parameters need to be chosen so that they are not so far away from the best-fitting parameters that the fit will get stuck, e.g. in a local-minimum, or diverge in the wrong direction away from the best-fitting parameters. You may have a physical motivation for a good choice of starting parameters, but it is also okay to plot the model on the same plot as the data and tweak the parameters so the model curve is at least not too far from most of the data.
-
-Once the fit has been done, `curve_fit` will output the best-fitting parameters (i.e. the parameter _MLEs_) and their covariance matrix, which will allow you to determine the 1-$$\sigma$$ ($$68\%$$ confidence interval) errors on the parameter MLEs. The errors should be accurate if the likelihood for the parameters is close to a multivariate normal distribution.
+Next, we need to set up our lmfit objective function, which we will do specifically for weighted least squares fitting, so the output should be the array of weighted residuals. We want our function to be quite generic and enable simultaneous fitting of any given model to multiple data sets (which we will learn about in two Episodes time). The main requirement from lmfit, besides the output being the array of weighted residuals, is that the first argument should be the `Parameters` object used by the fit. Beyond that, there are few restrictions except the usual rule that function positional arguments are followed by keyword arguments (i.e. in formal Python terms, the objective function `fcn` is defined as `fcn(params, *args, **kws)`). Therefore we choose to enter the data as lists of arrays: `xdata`, `ydata` and `yerrs`, and we also give the model function name as an argument `model` (so that the objective function can be calculated with any model chosen by the user). Note that for minimization the residuals for different data sets will be concatenated into a single array, but for plotting purposes we would also like to have the option to use the function to return a list-of-arrays format of the calculated model values for our input data arrays. So we include that possibility of changing the output by using a Boolean keyword argument `output_resid`, which is set to `True` as a default to return the objective function output for minimisation.
 
 ~~~
-p0 = [30., 130., 150.]  # Define starting values for [gam0, E0, N]
-ml_cfpars, ml_cfcovar = spopt.curve_fit(breitwigner, pion_clean['energy'], pion_clean['xsect'], 
-                                        p0, sigma=pion_clean['error'])
-print("The covariance matrix is: ",ml_cfcovar)
-# The parameter errors are the square root of the diagonals of the covariance matrix from the fit:
-err = np.sqrt(np.diag(ml_cfcovar)) 
+def lmf_lsq_resid(params,xdata,ydata,yerrs,model,output_resid=True):
+    '''lmfit objective function to calculate and return residual array or model y-values.
+        Inputs: params - name of lmfit Parameters object set up for the fit.
+                xdata, ydata, yerrs - lists of 1-D arrays of x and y data and y-errors to be fitted.
+                    E.g. for 2 data sets to be fitted simultaneously:
+                        xdata = [x1,x2], ydata = [y1,y2], yerrs = [err1,err2], where x1, y1, err1
+                        and x2, y2, err2 are the 'data', sets of 1-d arrays of length n1, n2 respectively, 
+                        where n1 does not need to equal n2.
+                    Note that a single data set should also be given via a list, i.e. xdata = [x1],...
+                model - the name of the model function to be used (must take params as its input params and
+                        return the model y-value array for a given x-value array).
+                output_resid - Boolean set to True if the lmfit objective function (residuals) is
+                        required output, otherwise a list of model y-value arrays (corresponding to the 
+                        input x-data list) is returned.
+        Output: if output_resid==True, returns a residual array of (y_i-y_model(x_i))/yerr_i which is
+            concatenated into a single array for all input data errors (i.e. length is n1+n2 in 
+            the example above). If output_resid==False, returns a list of y-model arrays (one per input x-array)'''
+    if output_resid == True:
+        for i, xvals in enumerate(xdata):  # loop through each input dataset and record residual array
+            if i == 0:
+                resid = (ydata[i]-model(xdata[i],params))/yerrs[i]
+            else:
+                resid = np.append(resid,(ydata[i]-model(xdata[i],params))/yerrs[i])
+        return resid
+    else:
+        ymodel = []
+        for i, xvals in enumerate(xdata): # record list of model y-value arrays, one per input dataset
+            ymodel.append(model(xdata[i],params))
+        return ymodel
+~~~
+{: .language-python}
 
-print("gam0 = " + str(ml_cfpars[0]) + " +/- " + str(err[0]))
-print("E0 = " + str(ml_cfpars[1]) + " +/- " + str(err[1]))
-print("N = " + str(ml_cfpars[2]) + " +/- " + str(err[2]))
+Of course, you can always set up the objective function in a different way if you prefer it, or to better suit what you want to do. The main thing is to start the input arguments with the `Parameters` object and return the correct output for minimization (a single residual array in this case).
+
+Now we can fit our data!  We do this by first assigning some of our input variables (note that here we assign the data arrays as items in corresponding lists of $$x$$, $$y$$ data and errors, as required by our pre-defined objective function). Then we create a `Minimizer` object, giving as arguments our objective function name, parameters object name and keyword argument `fcn_args` (which requires a tuple of the other arguments that go into our objective function, after the parameter object name). We also use a keyword argument `nan_policy` to omit `NaN` values in the data from the calculation (although that is not required here, it may be useful in future).
+
+Once the fit has been done (by applying the `minimize` method with the optimisation approach set to `leastsq`), we use the output with the lmfit function `report_fit`, to output (among other things) the minimum weighted-least squares value (so-called _'chi-squared'_) and the best-fitting parameters (i.e. the parameter _MLEs_) and their estimated 1-$$\sigma$$ ($$68\%$$ confidence interval) errors, which are determined using the numerical estimate of 2nd-order partial derivatives of the weighted-least squares function ($$\equiv -$$ve log-likelihood) at the minimum (i.e. the approach described in this episode). The errors should be accurate if the likelihood for the parameters is close to a multivariate normal distribution. The correlations are calculated from the covariance matrix of the parameters, i.e. they give an indication of how well-correlated are the errors in the two parameters.
+
+~~~
+model = breitwigner
+output_resid = True
+xdata = [pion_clean['energy']]
+ydata = [pion_clean['xsect']]
+yerrs = [pion_clean['error']]
+set_function = Minimizer(lmf_lsq_resid, params, fcn_args=(xdata, ydata, yerrs, model, output_resid), nan_policy='omit')
+result = set_function.minimize(method = 'leastsq')
+report_fit(result)
 ~~~
 {: .language-python}
 ~~~
-The covariance matrix is:  [[ 0.14240621 -0.02342886 -0.13671337]
- [-0.02342886  0.03251713 -0.01115311]
- [-0.13671337 -0.01115311  0.27594578]]
-gam0 = 110.22704032430696 +/- 0.3773674789654211
-E0 = 175.82091485658844 +/- 0.18032507028531025
-N = 205.0222509904991 +/- 0.5253054170197619
+[[Fit Statistics]]
+    # fitting method   = leastsq
+    # function evals   = 34
+    # data points      = 36
+    # variables        = 3
+    chi-square         = 38.0129567
+    reduced chi-square = 1.15190778
+    Akaike info crit   = 7.95869265
+    Bayesian info crit = 12.7092495
+[[Variables]]
+    gam0:  110.227040 +/- 0.37736748 (0.34%) (init = 30)
+    E0:    175.820915 +/- 0.18032507 (0.10%) (init = 130)
+    N:     205.022251 +/- 0.52530542 (0.26%) (init = 150)
+[[Correlations]] (unreported correlations are < 0.100)
+    C(gam0, N)  = -0.690
+    C(gam0, E0) = -0.344
+    C(E0, N)    = -0.118
 ~~~
 {: .output}
 
@@ -351,17 +433,28 @@ We can also plot our model and the $$data-model$$ residuals to show the quality 
 # For plotting a smooth model curve we need to define a grid of energy values:
 model_ens = np.linspace(50.0,350.0,1000)
 
+# To calculate the best-fitting model values, use the parameters of the best fit output
+# from the fit, result.params and set output_resid=false to output a list of model y-values:
+model_vals = lmf_lsq_resid(result.params,[model_ens],ydata,yerrs,model,output_resid=False)
+
 fig, (ax1, ax2) = plt.subplots(2,1, figsize=(8,6),sharex=True,gridspec_kw={'height_ratios':[2,1]})
 fig.subplots_adjust(hspace=0)
 # Plot data as points with y-errors
 ax1.errorbar(pion_clean['energy'], pion_clean['xsect'], yerr=pion_clean['error'], marker="o", linestyle="")
-# Plot the model as a continuous curve
-ax1.plot(model_ens, breitwigner(model_ens,*ml_cfpars), lw=2)
+
+# Plot the model as a continuous curve. The model values produced by our earlier function are an array stored 
+# as an item in a list, so we need to use index 0 to specifically output the y model values array.
+ax1.plot(model_ens, model_vals[0], lw=2)
 ax1.set_ylabel("Cross-section (mb)", fontsize=16)
 ax1.tick_params(labelsize=14)
-# Plot the data-model residuals as points with errors:
-ax2.errorbar(pion_clean['energy'],pion_clean['xsect']-breitwigner(pion_clean['energy'],*ml_cfpars),
+
+# Plot the data-model residuals as points with errors. Here we calculate the residuals directly for each
+# data point, again using the index 0 to access the array contained in the output list, which we can append at 
+# the end of the function call:
+ax2.errorbar(pion_clean['energy'],
+             pion_clean['xsect']-lmf_lsq_resid(result.params,xdata,ydata,yerrs,model,output_resid=False)[0],
              yerr=pion_clean['error'],marker="o", linestyle="")
+
 ax2.set_xlabel("Energy (MeV)",fontsize=16)
 ax2.set_ylabel("Residuals (mb)", fontsize=16)
 ax2.axhline(0.0, color='r', linestyle='dotted', lw=2) ## when showing residuals it is useful to also show the 0 line
@@ -382,32 +475,29 @@ An important aspect of weighted least squares fitting is that a significance tes
 
 It's important to remember that the chi-squared statistic can only be positive-valued, and the chi-squared test is single-tailed, i.e. we are only looking for deviations with large chi-squared compared to what we expect, since that corresponds to large residuals, i.e. a bad fit. Small chi-squared statistics can arise by chance, but if it is so small that it is unlikely to happen by chance (i.e. the corresponding cdf value is very small), it suggests that the error bars used to weight the squared residuals are too large, i.e. the errors on the data are overestimated. Alternatively a small chi-squared compared to the degrees of freedom could indicate that the model is being 'over-fitted', e.g. it is more complex than is required by the data, so that the model is effectively fitting the noise in the data rather than real features.
 
-Sometimes you will see the 'reduced chi-squared' discussed. This is the ratio $$X^2/\nu$$, written as $$\chi^{2}/\nu$$ and also (confusingly) as $$\chi^{2}_{\nu}$$. Since the expectation of the chi-squared distribution is $$E[X]=\nu$$, a rule of thumb is that $$\chi^{2}/\nu \simeq 1$$ corresponds to a good fit, while $$\chi^{2}/\nu$$ greater than 1 are bad fits and values significantly smaller than 1 correspond to over-fitting or overestimated errors on data. It's important to always bear in mind however that the width of the $$\chi^{2}$$ distribution scales as $$\sim 1/\sqrt{\nu}$$, so even small deviations from $$\chi^{2}/\nu = 1$$ can be significant for larger numbers of data-points being fitted, while large $$\chi^{2}/\nu$$ may arise by chance for small numbers of data-points.  For a formal estimate of goodness of fit, you should determine a $$p$$-value calculated from the $$\chi^{2}$$ distribution corresponding to $$\nu$$.
+Sometimes (as in the lmfit output shown above), you will see the 'reduced chi-squared' discussed. This is the ratio $$X^2/\nu$$, written as $$\chi^{2}/\nu$$ and also (confusingly) as $$\chi^{2}_{\nu}$$. Since the expectation of the chi-squared distribution is $$E[X]=\nu$$, a rule of thumb is that $$\chi^{2}/\nu \simeq 1$$ corresponds to a good fit, while $$\chi^{2}/\nu$$ greater than 1 are bad fits and values significantly smaller than 1 correspond to over-fitting or overestimated errors on data. It's important to always bear in mind however that the width of the $$\chi^{2}$$ distribution scales as $$\sim 1/\sqrt{\nu}$$, so even small deviations from $$\chi^{2}/\nu = 1$$ can be significant for larger numbers of data-points being fitted, while large $$\chi^{2}/\nu$$ may arise by chance for small numbers of data-points.  For a formal estimate of goodness of fit, you should determine a $$p$$-value calculated from the $$\chi^{2}$$ distribution corresponding to $$\nu$$.
 
-Let's calculate the goodness of fit of the non-relativistic Breit-Wigner formula to our data. Annoyingly, curve_fit does not return the minimum chi-squared so we must calculate that ourselves using our model function with the MLEs obtained by the fit:
+Let's calculate the goodness of fit of the non-relativistic Breit-Wigner formula to our data. To do so we need the best-fitting chi-squared and the number of degrees of freedom. We can access these from our fit result and use them to calculate the goodness of fit:
 
 ~~~
-minchisq = np.sum(((pion_clean['xsect']-breitwigner(pion_clean['energy'],*ml_cfpars))/pion_clean['error'])**2)
-# Also calculate the degrees of freedom (number of data points - number of free model parameters)
-dof = len(pion_clean['energy'])-len(p0)
-print("Minimum Chi-squared = "+str(minchisq)+" for "+str(dof)+" d.o.f.")
-print("The goodness of fit is: ",sps.chi2.sf(minchisq,df=dof))
+print("Minimum Chi-squared = "+str(result.chisqr)+" for "+str(result.nfree)+" d.o.f.")
+print("The goodness of fit is: ",sps.chi2.sf(result.chisqr,df=result.nfree))
 ~~~
 {: .language-python}
 ~~~
-Minimum Chi-squared = 38.01295670804497 for 33 d.o.f.
-The goodness of fit is:  0.25158686748919157
+Minimum Chi-squared = 38.01295670804502 for 33 d.o.f.
+The goodness of fit is:  0.25158686748918946
 ~~~
 {: .output}
 
-Our $$p$$-value (goodness of fit) is 0.25, indicating that the data are consistent with being normally distributed around the model, according to the size of the data errors. I.e., the fit is good. This does not mean it can't be improved however, e.g. by a more complex model with additional free parameters. We will discuss this question in a couple of episodes' time.
+Our $$p$$-value (goodness of fit) is 0.25, indicating that the data are consistent with being normally distributed around the model, according to the size of the data errors. I.e., the fit is good. This does not mean it can't be improved however, e.g. by a more complex model with additional free parameters. We will discuss this issue in a couple of episodes' time.
 
 > ## Programming challenge: fitting binary pulsar timing data
 > The file [pulsar-timing.txt][pulsar_timing] contains data on the timing of the binary pulsar PSR~1913+16. The data are from Taylor & Weisberg (1982; Astrophysical Journal, v235, pp.908-920). They show the "orbit phase residuals" from precise timing of the orbit of the system. The first column shows the observation, the second the date (in years) the third column shows the phase residual in years and the fourth column shows the error on the phase residual (also years). You can assume that the errors are normally distributed.
 >
 > If the orbit was (a) constant (at 7.76 hours) the residuals should be constant with time. If the orbit was (b) constant but its period was incorrectly determined the residuals should grow linearly with time. If the period of the system is constantly changing (c) there should be a parabolic change in the residual with time. A constantly increasing period (a quadratically decreasing phase residual) is what we would expect if gravitational waves are radiating energy from the system.
 >
-> Use weighted least squares to fit the following models to the data and obtain MLEs of the model parameters and their 1$$-\sigma$$ errors. By plotting the data and best-fitting models and data-model residuals, and also determining a goodness-of-fit for each model, decide which model or models give a reasonable match to the data:
+> Use weighted least squares fitting with lmfit to fit the following models to the data and obtain MLEs of the model parameters and their 1$$-\sigma$$ errors. By plotting the data and best-fitting models and data-model residuals, and also determining a goodness-of-fit for each model, decide which model or models give a reasonable match to the data:
 >
 > - a.	A constant: $$y=\alpha$$
 > - b.	A linear function: $$y=\alpha+\beta x$$
@@ -416,6 +506,7 @@ Our $$p$$-value (goodness of fit) is 0.25, indicating that the data are consiste
 {: .challenge}
 
 [numrec_online]: http://numerical.recipes/book/book.html
+[lmfit_doc]: https://lmfit.github.io/lmfit-py/index.html
 [pedroni_data]: https://github.com/philuttley/statistical-inference/tree/gh-pages/data/pedroni.txt
 [curve_fit_doc]: https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.curve_fit.html
 [pulsar_timing]: https://github.com/philuttley/statistical-inference/tree/gh-pages/data/pulsar-timing.txt
