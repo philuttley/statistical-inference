@@ -210,14 +210,14 @@ where the first two arguments are the `low` and `high` (exclusive, i.e. 1 more t
 {: .output}
 Note that repeating the command yields a different sample. This will be the case every time we repeat the `integers` function call, because the generator starts from a new point in the sequence. If we want to repeat the same 'random' sample we have to reset the generator to the same seed:
 ~~~
-print(rng.integers(1,6,5))
+print(rng.integers(1,7,5))
 rng = np.random.default_rng(331)
-print(rng.integers(1,6,5))
+print(rng.integers(1,7,5))
 ~~~
 {: .language-python}
 ~~~
-[3 3 2 5 4]
-[1 2 4 2 5]
+[4 3 2 5 4]
+[1 3 5 3 6]
 ~~~
 {: .output}
 For many uses of random number generators you may not care about being able to repeat the same sequence of numbers. In these cases you can set initialise the generator with the default seed using `np.random.default_rng()`, which obtains a seed from system information (usually contained in a continuously updated folder on your computer, specially for provide random information to any applications that need it). However, if you want to do a statistical test or simulate a random process that is exactly repeatable, you should consider specifying the seed. __But do not initialise the same seed unless you want to repeat the same sequence!__
