@@ -198,14 +198,14 @@ rng = np.random.default_rng(331)
 {: .language-python}
 will set up a generator with the `seed=331`.  We can use this generator to produce, e.g. random integers to simulate five repeated rolls of a 6-sided dice:
 ~~~
-print(rng.integers(1,6,5))
-print(rng.integers(1,6,5))
+print(rng.integers(1,7,5))
+print(rng.integers(1,7,5))
 ~~~
 {: .language-python}
-where the first two arguments are the `low` and `high` (inclusive) values of the range of contiguous integers to be sampled from, while the third argument is the `size` of the resulting array of random integers, i.e. how many outcomes to draw from the sample.
+where the first two arguments are the `low` and `high` (exclusive, i.e. 1 more than the maximum integer in the sample space) values of the range of contiguous integers to be sampled from, while the third argument is the `size` of the resulting array of random integers, i.e. how many outcomes to draw from the sample.
 ~~~
-[1 2 4 2 5]
-[2 3 2 2 5]
+[1 3 5 3 6]
+[2 3 2 2 6]
 ~~~
 {: .output}
 Note that repeating the command yields a different sample. This will be the case every time we repeat the `integers` function call, because the generator starts from a new point in the sequence. If we want to repeat the same 'random' sample we have to reset the generator to the same seed:
