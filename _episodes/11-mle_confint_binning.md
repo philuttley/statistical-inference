@@ -27,9 +27,9 @@ In this episode we will be using numpy, as well as matplotlib's plotting library
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.stats as sps
-import scipy.optimize as spopt
 import scipy.interpolate as spinterp
 import scipy.integrate as spint
+import lmfit
 ~~~
 {: .language-python}
 
@@ -594,7 +594,6 @@ def plot_spec_model(ebins,cdens,cdens_err,cdens_model):
 # from the fit, result.params and set output_resid=false to output a list of model y-values:
 model_vals = lmf_lsq_binresid(result.params,xdata,ydata,yerrs,model,output_resid=False)
 # Now plot the data and model and residuals
-print(len(model_vals),len(edges2),len(cdens))
 # The plotting function we defined takes the array of model values, so we must
 # specify the index for the model_vals list, to provide this array
 plot_spec_model(edges2,cdens,cdens_err,model_vals[0]) 

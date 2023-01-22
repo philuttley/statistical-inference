@@ -1,14 +1,23 @@
 ---
 title: >-
    Likelihood ratio: model comparison and confidence intervals
-teaching: 40
-exercises: 20
+teaching: 60
+exercises: 60
 questions:
-- "How do we fit multi-parameter models to data?"
+- "How do we compare hypotheses corresponding to models with different parameter values, to determine which is best?"
 objectives:
-- ""
+- "Understand how likelihood ratio can be used to compare hypotheses, and how this can be done for model-fitting and comparison of nested models using their log-likelihood-ratio (or equivalently delta-chi-squared)."
+- "Use the log-likelihood-ratio/delta-chi-squared to determine whether an additional model component, such as an emission line, is significant."
+- "Use the log-likelihood-ratio/delta-chi-squared to calculate confidence intervals or upper limits on MLEs using brute force."
+- "Use the log-likelihood-ratio/delta-chi-squared to determine whether different datasets fitted with the same model, are best explained with the same or different MLEs."
 keypoints:
-- ""
+- "A choice between two hypotheses can be informed by the likelihood ratio, the ratio of posterior pdfs expressed as a function of the possible values of data, e.g. a test statistic."
+- "Statistical significance is the chance that a given pre-specified value (or more extreme value) for a test statistic would be observed if the null hypothesis is true. Set as a significance level, it represents the chance of a false positive, where we would reject a true null hypothesis in favour of a false alternative."
+- "When a significance level has been pre-specified, the statistical power of the test is the chance that something less extreme than the pre-specified test-statistic value would be observed if the alternative hypothesis is true. It represents the chance of rejecting a true alternative and accept a false null hypothesis, i.e. the chance of a false negative."
+- "The Neyman-Pearson Lemma together with Wilks' theorem show how the log-likelihood ratio between an alternative hypothesis and nested (i.e. with more parameter constraints) null hypothesis allows the statistical power of the comparison to be maximised for any given significance level."
+- "Provided that the MLEs being considered in the alternative (fewer constraints) model are normally distributed, we can use the delta-log-likelihood or delta-chi-squared to compare the alternative with the more constrained null model."
+- "The above approach can be used to calculate confidence intervals or upper/lower limits on parameters, determine whether additional model components are required and test which (if any) parameters are significantly different between multiple datasets."
+- "For testing significance of narrow additive model components such as emission or absorption lines, only the line normalisation can be considered a nested parameter provided it is allowed to vary without constraints in the best fit. The significance should therefore be corrected using e.g. the Bonferroni correction, to account for the energy range searched over for the feature."
 ---
 
 <script src="../code/math-code.js"></script>
@@ -21,8 +30,9 @@ In this episode we will be using numpy, as well as matplotlib's plotting library
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.stats as sps
-import scipy.optimize as spopt
+import scipy.interpolate as spinterp
 import scipy.integrate as spint
+import lmfit
 ~~~
 {: .language-python}
 
@@ -47,7 +57,7 @@ When we carry out significance tests of a null hypothesis, we often place quite 
 
 ## The likelihood ratio test
 
-We would like to control the rate of false positive and false negative errors that arise from our test to compare hypotheses. To control the fraction of false negative tests, we should first be able to pre-specify our desired value of $$\alpha$$, i.e. we will only reject the null hypothesis in favour of the alternative if the test gives a $$p$$-value, $$p < \alpha$$ where $$\alpha$$ is set to be small enough to be unlikely. The choice of $$\alpha$$ should also reflect the importance of the outcome of rejecting the null hypothesis, e.g. does this correspond to the detection of a new particle (usually $$5\sigma$$, or just the detection of an astronomical source where one is already known in another waveband (perhaps 3$$\sigma$$)? If $$\alpha$$ is sufficiently small, the risk of a false negative (e.g. detecting a particle or source which isn't real) is low, by definition.
+We would like to control the rate of false positive and false negative errors that arise from our test to compare hypotheses. To control the fraction of false negative tests, we should first be able to pre-specify our desired value of $$\alpha$$, i.e. we will only reject the null hypothesis in favour of the alternative if the test gives a $$p$$-value, $$p < \alpha$$ where $$\alpha$$ is set to be small enough to be unlikely. The choice of $$\alpha$$ should also reflect the importance of the outcome of rejecting the null hypothesis, e.g. does this correspond to the detection of a new particle (usually $$5\sigma$$, or just the detection of an astronomical source where one is already known in another waveband (perhaps 3$$\sigma$$)? If $$\alpha$$ is sufficiently small, the risk of a false positive (e.g. detecting a particle or source which isn't real) is low, by definition.
 
 To control the false negative rate, we need to minimise $$\beta$$, which corresponds to the probability that we reject a true alternative and accept the false null hypothesis. The statistical [__power__]({{ page.root }}/reference/#power) of the test is $$1-\beta$$, i.e. by minimising the risk of a false negative we maximise the power of the test.
 
@@ -103,7 +113,7 @@ The threshold $$c$$ for rejecting the null hypothesis is obtained from:
 
 $$\int^{\infty}_{c} p(\Lambda\vert H)\mathrm{d}\Lambda = \alpha$$
 
-which is equivalent to asking the question: __assuming the null hypothesis is correct, what is the chance that I would see this value of the log-likelihood-ratio (or equivalently: this difference between the alternative and the null log-likelihoods).__
+which is equivalent to asking the question: __assuming the null hypothesis is correct, what is the chance that I would see this value of the log-likelihood-ratio (or equivalently: this difference between the alternative and the null log-likelihoods)?__
 
 __Wilks' theorem__ states that in the large-sample limit (i.e. sufficient data), or equivalently, when the MLEs of the additional free parameters in the alternative hypothesis are normally distributed:
 
@@ -118,57 +128,7 @@ To illustrate how to use likelihood ratio tests in this way, we will show a coup
 
 Looking at the spectral plot of our $$\gamma$$-ray photon data from the previous episode, there is a hint of a possible feature at around 70 GeV.  Could there be an emission feature there?  This is an example of a hypothesis test with a nested model where the main model is a power-law plus a Gaussian emission feature.  The simple power-law model is nested in the power-law plus Gaussian: it is this model with a single constraint, namely that the Gaussian flux is zero, which is our null hypothesis (i.e. which should have a lower probability than the alternative with more free parameters).  Since zero gives a lower bound of the parameter for an emission feature (which is not formally allowed for likelihood ratio tests), we should be sure to allow the Gaussian flux also to go negative (to approximate an absorption feature). 
 
-Before we start, we should first copy into our notebook and run the following functions which we defined in the previous episode: `histrebin`, `pl_model`, `model_int_cf` and `plot_spec_model`. Then we'll run the code below to load in the data, fit it with a simple power-law model and plot the data, model and data/model ratio:
-
-~~~
-#  First read in the data.  This is a simple (single-column) list of energies:
-photens = np.genfromtxt('photon_energies.txt')
-
-# Now we make our unbinned histogram.  We can keep the initial number of bins relatively large.
-emin, emax = 10., 200.   # We should always use the known values that the data are sampled over 
-                         # for the range used for the bins!
-nbins = 50
-counts, edges = np.histogram(photens, bins=nbins, range=[emin,emax], density=False)
-
-# And now we use our new function to rebin so there are at least mincounts counts per bin:
-mincounts = 20  # Here we set it to our minimum requirement of 20, but in principle you could set it higher
-counts2, edges2 = histrebin(mincounts,counts,edges)
-
-bwidths = np.diff(edges2) # calculates the width of each bin
-cdens = counts2/bwidths # determines the count densities
-cdens_err = np.sqrt(counts2)/bwidths # calculate the errors: remember the error is based on the counts, 
-# not the count density, so we have to also apply the same normalisation.
-energies = (edges2[:-1]+edges2[1:])/2.  # This calculates the energy bin centres
-
-model = pl_model
-p0 = [2500.0, -1.5]  # Initial power-law parameters
-ml_cfpars, ml_cfcovar = spopt.curve_fit(lambda energies, *parm: model_int_cf(energies, edges2, model, *parm),
-                                        energies, cdens, p0, sigma=cdens_err)
-err = np.sqrt(np.diag(ml_cfcovar))
-print("Covariance matrix:",ml_cfcovar)
-
-print("Normalisation at 1 GeV = " + str(ml_cfpars[0]) + " +/- " + str(err[0]))
-print("Power-law index = " + str(ml_cfpars[1]) + " +/- " + str(err[1]))
-minchisq = np.sum(((cdens - model_int_cf(energies, edges2, model, *ml_cfpars))/cdens_err)**2.)
-
-print("Minimum Chi-squared = " + str(minchisq) + " for " + str(len(cdens)-len(p0)) + " d.o.f.")
-print("The goodness of fit is: " + str(sps.chi2.sf(minchisq,df=(len(cdens)-len(p0)))))
-
-# Return the model y-values for model with parameters equal to the MLEs
-best_model = model_int_cf(energies, edges2, model, *ml_cfpars)
-# Now plot the data and model and residuals
-plot_spec_model(edges2,cdens,cdens_err,best_model)
-~~~
-{: .language-python}
-~~~
-Covariance matrix: [[ 1.38557897e+05 -1.43587826e+01]
- [-1.43587826e+01  1.57030675e-03]]
-Normalisation at 1 GeV = 2695.8605004131714 +/- 372.23365894181904
-Power-law index = -1.5725093885531372 +/- 0.0396270962109368
-Minimum Chi-squared = 20.652085891889353 for 20 d.o.f.
-The goodness of fit is: 0.41785865938156186
-~~~
-{: .output}
+Before we start, you should first run in your notebook the analysis in the previous episode in the section on _Fitting binned Poisson event data using weighted least-squares_,to model the example photon spectrum with a simple power-law model and plot the data, model and data/model ratio:
 
 <p align='center'>
 <img alt="Power-law photon histogram" src="../fig/ep11_pldatamodel.png" width="500"/>
@@ -176,46 +136,75 @@ The goodness of fit is: 0.41785865938156186
 
 The model is formally a good fit, but there may be an addition to the model which will formally give an even better fit. In particular, it looks as if there may be an emission feature around 70~GeV. Will adding a Gaussian emission line here make a significant improvement to the fit? To test this, we must use the (log)-likelihood ratio test. 
 
-First, let's define a power-law plus a Gaussian component.
+First, let's define a model for a power-law plus a Gaussian component, using an lmfit `Parameters` object as input:
 
 ~~~
-def plgauss_model(x, parm):
+def plgauss_model(x, params):
     '''Power-law plus Gaussian function.
        Inputs:
            x - input x value(s) (can be list or single value).
-           parm - parameters, list of PL normalisation (at x = 1) and power-law index, Gaussian mean,
-                  Gaussian sigma and Gaussian normalisation.'''
-    pl_norm = parm[0]  # here the function given means that the normalisation corresponds to that at a value 1.0
-    pl_index = parm[1]
-    gmu = parm[2]
-    gsig = parm[3]
-    gnorm = parm[4]
+           params - lmfit Parameters object normalisation (at x = 1) and power-law index, 
+                Gaussian mean, Gaussian sigma and Gaussian normalisation.'''
+    v = params.valuesdict()
     # The line is a Gaussian shape with a normalisation equal to the number of counts in the line
-    gflux = np.exp(-0.5*((x - gmu)/gsig)**2)/(gsig*np.sqrt(2.*np.pi))
-    return pl_norm*x**pl_index + gnorm*gflux
+    gflux = np.exp(-0.5*((x - v['gauss_mu'])/v['gauss_sig'])**2)/(v['gauss_sig']*
+                                                                  np.sqrt(2.*np.pi))
+    return  v['N'] * x**v['gamma'] + v['N_gauss']*gflux
 ~~~
 {: .language-python}
 
-Now initialise the fit parameters and set up the model name. Since the possible emission feature is quite narrow, you need to be fairly precise about the starting energy of the Gaussian component, otherwise the fit will not find the emission feature:
+Now we set up the `Parameters` object for lmfit to initialise the fit parameters and set up the model name. Since the possible emission feature is quite narrow, you need to be fairly precise about the starting energy of the Gaussian component, otherwise the fit will not find the emission feature. We will start with assuming no line, i.e. we initialise Gaussian normalisation `N_gauss` equal to zero, and let the fit find the best-fitting normalisation from there. With narrow features you may sometimes need to give a reasonable estimate of normalisation as your initial value, to prevent the minimizer trial-location of the feature wandering off to some value where it cannot find (and thus cannot successfully model) the feature again. In this case however, the fit should work well and successfully find the feature we want to model.
 
 ~~~
-p0 = [2000.0, -1.6, 70.0, 10.0, 0.0]
+params = Parameters()
+params.add_many(('N',2500),('gamma',-1.5),('N_gauss',0),('gauss_mu',70),('gauss_sig',10))
+~~~
+{: .language-python}
+
+From here we can run the lmfit `Minimizer` again, although we use a different variable name from our previous output `result` so that we can compare the effect of adding the Gaussian component. The relative narrowness of the Gaussian feature means that the covariance and error estimates for the Gaussian parameters from the fit are not very reliable. We would need to use the grid search method from the previous episode to obtain reliable error estimates in this case. But the fit itself is fine and shows improvement in the chi-squared and goodness-of-fit.
+
+~~~
 model = plgauss_model
+output_resid = True
+xdata = [edges2]
+ydata = [cdens]
+yerrs = [cdens_err]
+set_function = Minimizer(lmf_lsq_binresid, params, fcn_args=(xdata, ydata, yerrs, model, output_resid),nan_policy='omit')
+result_withgaussian = set_function.minimize(method = 'leastsq')
+report_fit(result_withgaussian)
+print("Minimum Chi-squared = "+str(result_withgaussian.chisqr)+" for "+
+      str(result_withgaussian.nfree)+" d.o.f.")
+print("The goodness of fit is: ",sps.chi2.sf(result_withgaussian.chisqr,df=result_withgaussian.nfree))
 ~~~
 {: .language-python}
 
-From here you can run the same commands as before. You may get a warning about roundoff error in the integration, which causes problems with the calculation of covariance values, but the fit itself is fine and shows improvement in the chi-squared and goodness-of-fit:
-
 ~~~
-Normalisation at 1 GeV = 2795.9371981847416 +/- 355.8039432852781
-Power-law index = -1.5861450028136679 +/- 0.036851576689611615
-Line energy = 70.80116290616805 +/- 11124267.195525434
-Line width (sigma) = 0.2766707478158328 +/- 5.999748843796642
-Line normalisation = 16.238525328480886 +/- 5.999748843796642
-Minimum Chi-squared = 14.430153676446889 for 17 d.o.f.
-The goodness of fit is: 0.6364535780057641
+[[Fit Statistics]]
+    # fitting method   = leastsq
+    # function evals   = 61
+    # data points      = 22
+    # variables        = 5
+    chi-square         = 14.4301537
+    reduced chi-square = 0.84883257
+    Akaike info crit   = 0.72210652
+    Bayesian info crit = 6.17731879
+[[Variables]]
+    N:          2795.93653 +/- 355.799130 (12.73%) (init = 2500)
+    gamma:     -1.58614493 +/- 0.03685151 (2.32%) (init = -1.5)
+    N_gauss:    16.2385238 +/- 3589.23773 (22103.23%) (init = 0)
+    gauss_mu:   70.8014411 +/- 12961923.3 (18307428.71%) (init = 70)
+    gauss_sig:  0.34398656 +/- 3.0984e+09 (900737942495.81%) (init = 10)
+[[Correlations]] (unreported correlations are < 0.100)
+    C(gauss_mu, gauss_sig) = 1.000
+    C(N_gauss, gauss_mu)   = -1.000
+    C(N_gauss, gauss_sig)  = -1.000
+    C(N, gamma)            = -0.973
+Minimum Chi-squared = 14.430153675574797 for 17 d.o.f.
+The goodness of fit is:  0.636453578068235
 ~~~
 {: .output}
+
+We can also plot the data vs. model using the same function as we defined in the previous episode.
 
 <p align='center'>
 <img alt="Power-law plus Gaussian photon histogram" src="../fig/ep12_plgaussdatamodel.png" width="500"/>
@@ -225,7 +214,14 @@ Now we can assess the significance of the improvement using Wilks' theorem. We c
 
 One important question here is: what is the number of additional free parameters?  Wilks' theorem tells us that the $$\Delta \chi^{2}$$ in going from a less constrained model to a more constrained one is itself distributed as $$\chi^{2}_{m}$$ where $$m$$ is the number of additional constraints in the more constrained model (or equivalently, the number of additional free parameters in the less constrained model).  In our case, it seems like $$m=3$$, but for an emission line we should be careful: the line energy is not really a 'nestable' model parameter because the likelihood does not smoothly change if we change the position of such a sharp feature.  The line width might be considered as a parameter, but often is limited by the resolution of the instrument which applies a significant lower bound, also making the likelihood ratio approach unsuitable.  Therefore for simplicity here it is better to do the test assuming only the flux as the additional constraint, i.e. the null hypothesis is for flux = 0.  
 
-Thus, we have a $$\chi^{2}_{1}$$ distribution and we can estimate the significance of our improvement using `print("p-value for our delta-chi-squared: ",sps.chi2.sf(6.22,df=1))` which gives:
+Thus, we have a $$\chi^{2}_{1}$$ distribution and we can estimate the significance of our improvement as follows:
+
+~~~
+# result.chisqr is the chi-squared value from the previous fit with only the power-law
+deltachisq = result.chisqr-result_withgaussian.chisqr
+print("p-value for our delta-chi-squared: ",sps.chi2.sf(deltachisq,df=1))
+~~~
+{: .language-python}
 
 ~~~
 p-value for our delta-chi-squared:  0.01263151128225959
@@ -260,14 +256,15 @@ print(sps.chi2.isf(2*sps.norm.sf(3),df=1))
 Now the modified versions of the functions. The `calc_error_chisq` function is modified to calculate only the upper value of an interval, consistent with an upper limit.
 
 ~~~
-def grid1d_chisqmin_cfint(a_index,a_range,a_steps,parm,model,xval,yval,dy,xedges):
-    '''Finds best the fit and then carries out chisq minimisation for a 1D grid of fixed parameters.
+def grid1d_binchisqmin(a_name,a_range,a_steps,parm,model,xdata,ydata,yerrs):
+    '''Uses lmfit. Finds best the fit and then carries out chisq minimisation for a 1D grid of fixed 
+       parameters, but using a binned model suitable for binned counts data
        Input: 
-            a_index - index of 'a' parameter (in input list parm) to use for grid.
+            a_name - string, name of 'a' parameter (in input Parameters object parm) to use for grid.
             a_range, a_steps - range (tuple or list) and number of steps for grid.
-            parm - parameter list for model to be fitted.
+            parm - lmfit Parameters object for model to be fitted.
             model - name of model function to be fitted.
-            xval, dyval, dy - data x, y and y-error arrays
+            xdata, ydata, yerrs - lists of data x, y and y-error arrays (as for the lmf_lsq_resid function)
         Output: 
             a_best - best-fitting value for 'a'
             minchisq - minimum chi-squared (for a_best)
@@ -276,25 +273,23 @@ def grid1d_chisqmin_cfint(a_index,a_range,a_steps,parm,model,xval,yval,dy,xedges
     a_grid = np.linspace(a_range[0],a_range[1],a_steps)
     chisq_grid = np.zeros(len(a_grid))
     # First obtain best-fitting value for 'a' and corresponding chi-squared
-    ml_cfpars, ml_cfcovar = spopt.curve_fit(lambda xval, *parm: model_int_cf(xval, xedges, 
-                            model, parm), xval, yval, parm, sigma=dy)
-    
-    minchisq = np.sum(((yval-model_int_cf(xval,xedges,model,*ml_cfpars))/dy)**2)
-    a_best = ml_cfpars[a_index]
-    # Now remove 'a' from the input parameter list, so this parameter may be frozen at the 
-    # grid value for each fit
-    free_parm = np.delete(parm,a_index)
-    # Now fit for each 'a' in the grid, to do so we must use a lambda function to insert the fixed 
-    # 'a' into the model function when it is called by curve_fit, so that curve_fit does not use 
-    # 'a' as one of the free parameters so it remains at the fixed grid value in the fit.
-    for i, a_val in enumerate(a_grid):        
-        ml_cfpars, ml_cfcovar = spopt.curve_fit(lambda xval, *parm: model_int_cf(xval, xedges, 
-                            model, parm), xval, yval, parm, sigma=dy)        
-        chisq_grid[i] = np.sum(((yval-model_int_cf(xval,xedges,model,
-                                                   *np.insert(ml_cfpars,a_index,a_val)))/dy)**2)
-        print(i+1,'steps: chisq =',chisq_grid[i],'for a =',a_val,' minimum = ',minchisq,' for a =',a_best)
-    return a_best, minchisq, a_grid, chisq_grid  
-    
+    set_function = Minimizer(lmf_lsq_binresid, parm, fcn_args=(xdata, ydata, yerrs, model, True),
+                             nan_policy='omit')
+    result = set_function.minimize(method = 'leastsq')
+    minchisq = result.chisqr
+    a_best = result.params.valuesdict()[a_name]
+    # Now fit for each 'a' in the grid, to do so we use the .add() method for the Parameters object
+    # to replace the value of a_name with the value for the grid, setting vary=False to freeze it
+    # so it cannot vary in the fit (only the other parameters will be left to vary)
+    for i, a_val in enumerate(a_grid):
+        parm.add(a_name,value=a_val,vary=False)
+        set_function = Minimizer(lmf_lsq_binresid, parm, fcn_args=(xdata, ydata, yerrs, model, True), 
+                                                                nan_policy='omit')
+        result = set_function.minimize(method = 'leastsq')
+        chisq_grid[i] = result.chisqr
+        
+    return a_best, minchisq, a_grid, chisq_grid 
+
 def calc_upper_chisq(delchisq,minchisq,a_grid,chisq_grid):
     '''Function to return upper values of a parameter 'a' for a given delta-chi-squared
        Input:
@@ -307,39 +302,407 @@ def calc_upper_chisq(delchisq,minchisq,a_grid,chisq_grid):
 ~~~
 {: .language-python}
 
-Now we can run the grid search to find the upper limit. However, we need to bear in mind that we must keep the Gaussian feature mean energy and width $$\sigma$$ fixed at the states values for these fits! `curve_fit` will vary all the parameters given to it, so to fix ('freeze') parameters, we should do this by creating a bespoke model function for `curve_fit` to use, which makes use of our original model but freezes and 'hides' the frozen parameters from `curve_fit`:
+Now we can run the grid search to find the upper limit. However, we need to bear in mind that we must keep the Gaussian feature mean energy and width $$\sigma$$ fixed at the stated values for these fits!:
 
 ~~~
-# Give the fixed parameters and define a new function to hide them from curve_fit:
+# First we set up the parameters for the search. Remember we want to find the upper-limit
+# on Gaussian normalisation at a fixed Gaussian mean energy and sigma, so we need to
+# set the `vary` argument for those two parameters to be False, to keep them fixed.
 fixed_en = 33.1
 fixed_sig = 5.0
-new_model = lambda x, parm: plgauss_model(x,np.insert(np.insert(parm,2,fixed_en),3,fixed_sig))
+params = Parameters()
+params.add_many(('N',2500),('gamma',-1.5),('N_gauss',0),
+                ('gauss_mu',fixed_en,False),('gauss_sig',fixed_sig,False))
 
-# Below is the parameter list which curve_fit will see initially, with PL norm, 
-# PL index and Gaussian line normalisation.
-parm = [2000.0, -1.6, 0.0]
-# Now we select the parameter to step through and give the range and number of steps:
-a_index = 2
-par_range = [0,40]
+# Now set up the parameter to be stepped over for the upper-limit search
+a_range = [0,40]
+a_name = 'N_gauss'
 n_steps = 100
+
 # Run the grid calculation
-a_best, minchisq, a_grid, chisq_grid = grid1d_chisqmin_cfint(a_index,par_range,n_steps,parm,new_model,
-                             energies,cdens,cdens_err,edges2)
+a_best, minchisq, a_grid, chisq_grid = grid1d_binchisqmin(a_name,a_range,n_steps,params,model,
+                             xdata,ydata,yerrs)
 
 # Now give the output
 delchisq = 9
 a_upper = calc_upper_chisq(delchisq,minchisq,a_grid,chisq_grid)
-print("3-sigma upper limit on line flux: ", a_upper)
+print("Best-fitting line flux = ",a_best,"for chisq = ",minchisq)
+print("3-sigma upper limit on line flux: ", a_upper,"for chisq = ",minchisq+delchisq)
 ~~~
 {: .language-python}
 
+~~~
+Best-fitting line flux =  -13.534821277620663 for chisq =  19.869492823618017
+3-sigma upper limit on line flux:  32.3673655153036 for chisq =  28.869492823618017
+~~~
+{: .output}
+
 Note that for a meaningful 3-$$\sigma$$ upper limit according to Wilks' theorem, we must compare with the best-fit (the alternative hypothesis) even if the best-fitting line flux is non-zero, and since it is an upper limit and not an interval, we just state the absolute value of the flux not the difference from the best-fitting value.
 
-We can also plot our grid to check that everything has worked okay and that there is a smooth variation of the $$\Delta \chi^{2}$$ with the line flux. We also show the location for $$\Delta \chi^{2}$$ on the plot (the corresponding line flux is $$27.4$$ counts).
+We can also plot our grid to check that everything has worked okay and that there is a smooth variation of the $$\Delta \chi^{2}$$ with the line flux. We also show the location for $$\Delta \chi^{2}$$ on the plot (the corresponding line flux is $$32.4$$ counts).
 
 <p align='center'>
 <img alt="Power-law photon histogram" src="../fig/ep12_upperlim.png" width="500"/>
 </p>
+
+## Fitting multiple datasets: are the MLEs different?
+
+It can be common that we have multiple datasets that we want to fit the same model to. Perhaps these are the spectra of a sample of some type of astronomical objects, or perhaps the same object but observed at different times. Or perhaps we have data from repeated experiments to make the same measurements. Fitting multiple datasets can give us better constraints on our model parameters. 
+
+But it can also happen that we want to look for differences between our datasets which may give us new insights. For example, we may want to see if astronomical source spectra are different in ways which may correlate with other source properties. Or perhaps we want to see if spectra from a single source varies over time. Or maybe we ran our experiment multiple times with different settings and we want to see if there is an effect on our data. In these cases, it is useful to work out whether the MLEs for each dataset are consistent with being the same or whether they are different for different datasets. This is a type of hypothesis test and we can use the change in $$\chi^{2}$$ statistic or $$L$$ when we 'tie together' or 'free' some of the model parameters used to fit each dataset.
+
+For simultaneous fitting of multiple datasets we can input our data using the list format we already applied for our lmfit objective function in this and previous episodes. This time each list for `xdata`, `ydata` and `yerrs` will contain the corresponding data for multiple datasets. For this example of spectral fitting of (imagined) gamma ray spectra, we use the three photon events data files named `spec1.txt`, `spec2.txt` and `spec3.txt`. Our loop over the photon data files reads them in, rebins them so we can use weighted least squares fitting (this is possible due to the high photon counts) and then assigns the binned data and errors to our lmfit dataset arrays:
+
+~~~
+emin, emax = 10., 200.   # We should always use the known values that the data are sampled over 
+                         # for the range used for the bins!
+nbins = 50
+# And now we use our new function to rebin so there are at least mincounts counts per bin:
+mincounts = 20  # Here we set it to our minimum requirement of 20, but in principle you could set it higher
+
+xdata = []  # We create empty lists to assign our binned spectra to lists for lmfit to fit them together
+ydata = []
+yerrs = []
+files = ['spec1.txt','spec2.txt','spec3.txt']
+for file in files:
+    #  First read in the data.  This is a simple (single-column) list of energies:
+    photens = np.genfromtxt(file)
+    counts, edges = np.histogram(photens, bins=nbins, range=[emin,emax], density=False)
+    counts2, edges2 = histrebin(mincounts,counts,edges)
+    bwidths = np.diff(edges2) # calculates the width of each bin
+    cdens = counts2/bwidths # determines the count densities
+    cdens_err = np.sqrt(counts2)/bwidths # calculate the errors: remember the error is based on the counts, 
+    # not the count density, so we have to also apply the same normalisation.
+    xdata.append(edges2) # Now assign to our lists for lmfit
+    ydata.append(cdens)
+    yerrs.append(cdens_err) 
+~~~
+{: .language-python}
+
+We can plot the resulting binned spectra, which confirms that they have power-law shapes that are similar to one another, albeit with different normalisations.
+
+<p align='center'>
+<img alt="Multiple power-law photon histograms" src="../fig/ep12_multspec.png" width="500"/>
+</p>
+
+For fitting multiple datasets we need to modify our objective function as well as the function used to bin the model (since we are fitting binned data), so that we can tell the model which dataset to consider for which parameters. The reason for this is that lmfit requires a single `Parameters` object as input to the objective function which is minimized. Therefore if we fit multiple spectra simultaneously and wish to allow the model parameter values to be different for different spectra, we need to include the parameters for each spectrum separately in our `Parameters` object and then provide a way for the objective function to determine which parameters to use. Note that if we wished to fit the same model parameter values to all datasets (which may be preferred in some cases, e.g. where we have good reason to think they should be the same), we can use our original function definitions for this purpose (since they are also designed to be able to handle a list of datasets, but will fit all with the same model parameter values).
+
+To proceed, we make a small modification to our objective function and model binning function which includes as an argument an index for the dataset (i.e. in this case, spectrum) we are using:
+
+~~~
+def model_bin_mult(xbins, model, i_data, params):
+    '''General function for integrating the input model over bins defined by contiguous (no gaps) 
+        bin edges, xbins.
+       Inputs:
+           xbins - x bin edges.
+           i_data - the dataset being considered (determines which parameters to use in the model)
+           model, params - the model name and associated Parameters object.
+       Outputs:
+           ymod - calculated counts-density model values for y-axis.'''
+    i = 0
+    ymod = np.zeros(len(xbins)-1)
+    for i, xval in enumerate(xbins[:-1]):
+        ymod[i], ymoderr = spint.quad(lambda x: model(x, i_data, params),xbins[i],xbins[i+1])
+        ymod[i] = ymod[i]/(xbins[i+1]-xbins[i])  # we now divide by the bin width to match the counts density
+        # units of our data
+    return ymod
+
+def lmf_lsq_binresid_mult(params,xdata,ydata,yerrs,model,output_resid=True):
+    '''lmfit objective function to calculate and return residual array or model y-values for
+        binned data where the xdata are the input bin edges and ydata are the densities (integral over bin
+        divided by bin width).
+        Inputs: params - name of lmfit Parameters object set up for the fit.
+                xdata, ydata, yerrs - lists of 1-D arrays of x (must be bin edges not bin centres) 
+                and y data and y-errors to be fitted.
+                    E.g. for 2 data sets to be fitted simultaneously:
+                        xdata = [x1,x2], ydata = [y1,y2], yerrs = [err1,err2], where x1, y1, err1
+                        and x2, y2, err2 are the 'data', sets of 1-d arrays of length n1 (n1+1 for x2
+                        since it is bin edges), n2 (n2+1 for x2) respectively, 
+                        where n1 does not need to equal n2.
+                    Note that a single data set should also be given via a list, i.e. xdata = [x1],...
+                model - the name of the model function to be used (must take params as its input params and
+                        return the model y-value array for a given x-value array).
+                output_resid - Boolean set to True if the lmfit objective function (residuals) is
+                        required output, otherwise a list of model y-value arrays (corresponding to the 
+                        input x-data list) is returned.
+        Output: if output_resid==True, returns a residual array of (y_i-y_model(x_i))/yerr_i which is
+            concatenated into a single array for all input data errors (i.e. length is n1+n2 in 
+            the example above). If output_resid==False, returns a list of y-model arrays (one per input x-array)'''
+    if output_resid == True:
+        for i, xvals in enumerate(xdata):  # loop through each input dataset and record residual array
+                     # Note that we identify the dataset by counting from 1 not 0, this is just the 
+                    # standard we will use for naming the parameters.
+            if i == 0:
+                resid = (ydata[i]-model_bin_mult(xdata[i],model,i+1,params))/yerrs[i]
+            else:
+                resid = np.append(resid,(ydata[i]-model_bin_mult(xdata[i],model,i+1,params))/yerrs[i])
+        return resid
+    else:
+        ymodel = []
+        for i, xvals in enumerate(xdata): # record list of model y-value arrays, one per input dataset
+            ymodel.append(model_bin_mult(xdata[i],model,i+1,params))
+        return ymodel
+~~~
+{: .language-python}
+
+Next we define our power-law model so it contains multiple parameters. By using the input dataset index in parameter name we can make this function generic for simultaneous fitting of any number of datasets.
+
+~~~
+def pl_model_mult(x, i_data, params):
+    '''Simple power-law function to fit multiple datasets.
+       Inputs:
+           x - input x value(s) (can be list or single value).
+           i_data - Index of dataset
+           params - lmfit Parameters object: PL normalisation (at x = 1) and power-law index.'''
+    v = params.valuesdict()
+    return v['N_'+str(i_data)] * x**v['gamma_'+str(i_data)]
+~~~
+{: .language-python}
+
+We now set up our lmfit `Parameters` object. We can already see that the normalisations of our power-laws are clearly different, but the power-law indices (so-called photon index $$\Gamma$$) look similar. Are they the same or not? To test this idea we first try our null hypothesis where the three fitted power-law indices are tied together so that the same value is used for all of them and allowed to vary to find its MLE. To 'tie together' the power-law indices we need to consider some of the other properties of the corresponding `Parameter`: we set `vary=True` and we also use the `expr` property, for which we must give a mathematical expression (without the preceding equals sign) in the form of a string. `expr` forces the parameter to take the value given by `expr` which allows us to set parameters to values calculated with the mathematical expression, including functions of the other parameters. To set the parameter to be equal to the another parameter, we can just give that parameter name as the expression:
+
+~~~
+params = Parameters()
+params.add_many(('N_1',2500),('gamma_1',-1.5,True),
+                ('N_2',2500),('gamma_2',-1.5,True,None,None,'gamma_1'), # We must specifiy all properties up to `gamma_1`, 
+                # here using None except for vary which we set to True.
+                ('N_3',2500),('gamma_3',-1.5,True,None,None,'gamma_1'))
+~~~
+{: .language-python}
+
+Now we are ready to fit our null hypothesis of a single photon index (but different normalisations) for all three spectra.
+
+~~~
+model = pl_model_mult
+output_resid = True
+set_function = Minimizer(lmf_lsq_binresid_mult, params, fcn_args=(xdata, ydata, yerrs, model, output_resid),nan_policy='omit')
+result_null = set_function.minimize(method = 'leastsq')
+report_fit(result_null)
+print("Minimum Chi-squared = "+str(result_null.chisqr)+" for "+str(result_null.nfree)+" d.o.f.")
+print("The goodness of fit is: ",sps.chi2.sf(result_null.chisqr,df=result_null.nfree))
+~~~
+{: .language-python}
+
+~~~
+[[Fit Statistics]]
+    # fitting method   = leastsq
+    # function evals   = 53
+    # data points      = 147
+    # variables        = 4
+    chi-square         = 180.133178
+    reduced chi-square = 1.25967257
+    Akaike info crit   = 37.8797884
+    Bayesian info crit = 49.8415188
+[[Variables]]
+    N_1:      28046.3749 +/- 818.363220 (2.92%) (init = 2500)
+    gamma_1: -1.60080260 +/- 0.00804811 (0.50%) (init = -1.5)
+    N_2:      22411.0523 +/- 674.301381 (3.01%) (init = 2500)
+    gamma_2: -1.60080260 +/- 0.00804811 (0.50%) == 'gamma_1'
+    N_3:      36682.3746 +/- 1065.10145 (2.90%) (init = 2500)
+    gamma_3: -1.60080260 +/- 0.00804811 (0.50%) == 'gamma_1'
+[[Correlations]] (unreported correlations are < 0.100)
+    C(gamma_1, N_3) = -0.940
+    C(N_1, gamma_1) = -0.921
+    C(gamma_1, N_2) = -0.907
+    C(N_1, N_3)     = 0.866
+    C(N_2, N_3)     = 0.852
+    C(N_1, N_2)     = 0.835
+Minimum Chi-squared = 180.13317771619816 for 143 d.o.f.
+The goodness of fit is:  0.019284359760601277
+~~~
+{: .output}
+
+The fit finds that a power-law index of $$\simeq -1.6$$ can best fit the data if a single value is assumed for all three spectra. The fit isn't great but it's not terrible either (from the goodness-of-fit, the model is ruled out with less than 3-$$\sigma$$ significance). We can plot our spectra vs. the model, and the residuals, to see if there are any systematic deviations from the model. First we define a handy plotting function for plotting data vs. model comparisons for multiple spectra, which also allows different options for the data vs. model residuals:
+
+~~~
+def plot_spec_model_mult(ebins_list,cdens_list,cdens_err_list,cdens_model_list,emin,emax,resid_type,
+                         legend_labels):
+    '''Plot the binned (GeV) spectrum with the model as a histogram, and 
+       data/model residuals.
+       Inputs:
+           ebins_list - energy bin edges.
+           cdens_list, cdens_err_list - counts density and its error.
+           cdens_model_list - model counts density.
+           emin, emax - minimum and maximum energy to be plotted
+           resid_type - string, type of data vs model residuals, these can be: 
+               ratio: data/model, resid: data-model, weighted resid: data-model/error
+           legend_labels - list of labels for each dataset to use in legend, 
+                   use None if no legend required'''
+    
+    fig, (ax1, ax2) = plt.subplots(2,1, figsize=(8,6),sharex=True,gridspec_kw={'height_ratios':[2,1]})
+    fig.subplots_adjust(hspace=0)
+    for i,ebins in enumerate(ebins_list):
+        energies = (ebins[1:]+ebins[:-1])/2
+        bwidths = np.diff(ebins)
+        if legend_labels != None:
+            label_txt = legend_labels[i]
+        # Note that colours in the default Matplotlib colour cycle can be specified using strings 
+        # 'C0'..'C9', which is useful for plotting the same colours for model and data.
+        ax1.errorbar(energies, cdens_list[i], xerr=bwidths/2., yerr=cdens_err_list[i], 
+                     color='C'+str(i), markersize=4, fmt='o', label=label_txt)
+        model_hist, edges, patches = ax1.hist(energies, bins=ebins, weights=cdens_model_list[i], 
+                    density=False, histtype='step', color='C'+str(i), alpha=0.5, 
+                                              linestyle='dotted', linewidth=2)
+        if resid_type == 'ratio':
+            ax2.errorbar(energies, cdens_list[i]/cdens_model_list[i], xerr=bwidths/2., 
+                    yerr=cdens_err_list[i]/cdens_model_list[i], color='C'+str(i), markersize=4, fmt='o')
+        elif resid_type == 'resid':
+            ax2.errorbar(energies, (cdens_list[i]-cdens_model_list[i]), xerr=bwidths/2., 
+                    yerr=cdens_err_list[i], color='C'+str(i), markersize=4, fmt='o')
+        elif resid_type == 'weighted resid':
+            ax2.errorbar(energies, (cdens_list[i]-cdens_model_list[i])/cdens_err_list[i], xerr=bwidths/2., 
+                    yerr=1.0, color='C'+str(i), markersize=4, fmt='o')
+    ax2.set_xlabel("Energy (GeV)", fontsize=14)
+    ax1.set_ylabel("Counts/Gev", fontsize=14)
+    ax1.get_yaxis().set_label_coords(-0.12,0.5)
+    ax2.get_yaxis().set_label_coords(-0.12,0.5)
+    if resid_type == 'ratio':
+        ax2.set_ylabel("data/model", fontsize=14)
+        ax2.axhline(1., color='gray', linestyle='dotted', lw=2)
+    elif resid_type == 'resid':
+        ax2.set_ylabel("data-model", fontsize=14)
+        ax2.axhline(0., color='gray', linestyle='dotted', lw=2)
+    elif resid_type == 'weighted resid':
+        ax2.get_yaxis().set_label_coords(-0.09,0.5)
+        ax2.set_ylabel(r"$\frac{data-model}{error}$", fontsize=16)
+        ax2.axhline(0., color='gray', linestyle='dotted', lw=2)
+    ax1.tick_params(labelsize=14)
+    ax1.tick_params(axis="x",direction="in",which="both", length=4)
+    ax2.tick_params(axis="x",which="both", length=4)
+    ax2.tick_params(labelsize=14)
+    ax1.set_yscale('log')
+    ax1.set_xscale('log')
+    ax2.set_xscale('log')
+    ax2.set_xlim(emin,emax) # Strictly speaking we should only show the energy range 
+    # where data is sampled, to avoid impression from model that the flux suddenly drops 
+    # at the boundaries.
+    ax1.legend(fontsize=14)
+    plt.show()
+~~~
+{: .language-python}
+
+Now we plot our data vs. model comparison.
+
+~~~
+# To calculate the best-fitting model values, use the parameters of the best fit output
+# from the fit, result.params and set output_resid=false to output a list of model y-values:
+model_vals = lmf_lsq_binresid_mult(result_null.params,xdata,ydata,yerrs,model,output_resid=False)
+# Now plot the data and model and residuals
+legend_labels = files
+plot_spec_model_mult(xdata,ydata,yerrs,model_vals,10,200,'weighted resid',legend_labels)
+~~~
+{: .language-python}
+
+<p align='center'>
+<img alt="Multiple power-law photon histograms fitted with same PL index" src="../fig/ep12_multfitsamepl.png" width="500"/>
+</p>
+
+For our plot we choose to show the weighted residuals, i.e. (data-model)/error, since the differences are quite small and if we plot the data/model ratio or the data-model residuals the plot scale is driven by either the high energy or low energy parts of the spectra respectively, such that we cannot easily see deviations across the full energy range. With this plot we can see some small but systematic differences in the weighted residuals for spectrum 1 vs the other spectra, which may indicated a flatter spectrum (i.e. less negative index) for that dataset.
+
+We can now see whether there are significant differences in the power-law index between the three spectra, by relaxing our constraint which ties the three index values together, so that they are free to vary independently in the fit. To do this we replace our parameters with the default values (free to vary and with mathematical expression to constrain them), and fit again:
+
+~~~
+params.add_many(('N_1',2500),('gamma_1',-1.5),
+                ('N_2',2500),('gamma_2',-1.5),
+                ('N_3',2500),('gamma_3',-1.5))
+
+model = pl_model_mult
+output_resid = True
+set_function = Minimizer(lmf_lsq_binresid_mult, params, fcn_args=(xdata, ydata, yerrs, model, output_resid),nan_policy='omit')
+result = set_function.minimize(method = 'leastsq')
+report_fit(result_altern)
+print("Minimum Chi-squared = "+str(result_altern.chisqr)+" for "+str(result_altern.nfree)+" d.o.f.")
+print("The goodness of fit is: ",sps.chi2.sf(result_altern.chisqr,df=result_altern.nfree))
+~~~
+{: .language-python}
+
+We show here only part of the results, for brevity:
+
+~~~
+[[Variables]]
+    N_1:      23457.2880 +/- 1069.88979 (4.56%) (init = 2500)
+    gamma_1: -1.54756853 +/- 0.01301848 (0.84%) (init = -1.5)
+    N_2:      24235.3503 +/- 1237.64629 (5.11%) (init = 2500)
+    gamma_2: -1.62394581 +/- 0.01479000 (0.91%) (init = -1.5)
+    N_3:      40046.3917 +/- 1610.95889 (4.02%) (init = 2500)
+    gamma_3: -1.62674743 +/- 0.01166195 (0.72%) (init = -1.5)
+[[Correlations]] (unreported correlations are < 0.100)
+    C(N_3, gamma_3) = -0.973
+    C(N_2, gamma_2) = -0.973
+    C(N_1, gamma_1) = -0.973
+Minimum Chi-squared = 154.01314423376198 for 141 d.o.f.
+The goodness of fit is:  0.2142664317881377
+~~~
+{: .output}
+
+Our new fit finds that the fit has improved (goodness-of-fit now 0.21) with `gamma_1` less negative than `gamma_2` and `gamma_3`, as we suspected from the data vs. model residuals of our previous fit. But is this change formally significant? How sure can we be that the data _require_ that the power-law index is different between the spectra?
+
+To do this test we look at the change in chi-squared (to use the colloquial term for the weighted least squares statistic) between our null hypothesis (with constrained power-law index) and our alternative, with that constraint removed. We also need to account for the change in the number of constraints, i.e. our degrees of freedom. In our null hypothesis we had two constraints for the index which we relaxed. So according to Wilks' theorem, if the null hypothesis is correct and the improvement with the alternative is just due to chance, the improvement $$\Delta \chi^{2}$$ should be distributed as $$\chi^{2}_{m}$$ where $$m=2$$. Let's take a look:
+
+~~~
+constraints = 
+deltachisq = result_null.chisqr-result_altern.chisqr
+print("p-value for our delta-chi-squared: ",sps.chi2.sf(deltachisq,df=2))
+~~~
+{: .language-python}
+
+~~~
+m = result_null.nfree-result_altern.nfree
+deltachisq = result_null.chisqr-result_altern.chisqr
+print("p-value for our delta-chi-squared: ",sps.chi2.sf(deltachisq,df=m),"for",m,"fewer constraints.")
+~~~
+{: .language-python}
+
+~~~
+p-value for our delta-chi-squared:  2.1286624330119402e-06 for 2 fewer constraints.
+~~~
+{: .output}
+
+Which means the improvement is significant at better than 4-$$\sigma$$ significance (actually 4.74-$$\sigma$$). This is more than acceptable for spectral comparisons (unless the difference would imply something really important, like the discovery of a new particle or physical effect), so we can state that the data are consistent with the spectra (at least spectrum 1 vs spectra 2 and 3) having different power-law indices. 
+
+If we want to test whether spectra 2 and 3 also have different indices from each other, we can go further and compare the situation with all indices free to vary with that where the indices for spectra 2 and 3 are tied to be the same, but the index for spectrum 1 is allowed to be different. I.e. we edit the Parameters object and run our fit as follows:
+
+~~~
+params.add_many(('N_1',2500),('gamma_1',-1.5),
+                ('N_2',2500),('gamma_2',-1.5),
+                ('N_3',2500),('gamma_3',-1.5,True,None,None,'gamma_2'))
+
+model = pl_model_mult
+output_resid = True
+set_function = Minimizer(lmf_lsq_binresid_mult, params, fcn_args=(xdata, ydata, yerrs, model, output_resid),nan_policy='omit')
+result_altern2 = set_function.minimize(method = 'leastsq')
+report_fit(result_altern2)
+print("Minimum Chi-squared = "+str(result_altern2.chisqr)+" for "+str(result_altern2.nfree)+" d.o.f.")
+print("The goodness of fit is: ",sps.chi2.sf(result_altern2.chisqr,df=result_altern2.nfree))
+# note that our new fit is the new null, since it has the most constraints
+m = result_altern2.nfree-result_altern.nfree
+deltachisq = result_altern2.chisqr-result_altern.chisqr
+print("p-value for our delta-chi-squared: ",sps.chi2.sf(deltachisq,df=m),"for",m,"fewer constraints.")
+~~~
+{: .language-python}
+
+~~~
+[[Variables]]
+    N_1:      23457.2870 +/- 1066.20685 (4.55%) (init = 2500)
+    gamma_1: -1.54756851 +/- 0.01297362 (0.84%) (init = -1.5)
+    N_2:      24375.5752 +/- 800.070733 (3.28%) (init = 2500)
+    gamma_2: -1.62566426 +/- 0.00912604 (0.56%) (init = -1.5)
+    N_3:      39900.9893 +/- 1277.00511 (3.20%) (init = 2500)
+    gamma_3: -1.62566426 +/- 0.00912604 (0.56%) == 'gamma_2'
+[[Correlations]] (unreported correlations are < 0.100)
+    C(N_1, gamma_1) = -0.973
+    C(gamma_2, N_3) = -0.958
+    C(N_2, gamma_2) = -0.933
+    C(N_2, N_3)     = 0.894
+Minimum Chi-squared = 154.0375075024773 for 142 d.o.f.
+The goodness of fit is:  0.23136639609523538
+p-value for our delta-chi-squared:  0.8759641494768704 for 1 fewer constraints.
+~~~
+{: .output}
+
+Now we see that the $$p$$-value is high and so there is no significant improvement in the fit from allowing the power-law indices of spectra 2 and 3 to be different from one another. I.e. our final conclusion should be that ___spectrum 1 has a different power-law index to spectra 2 and 3, but the latter two datasets are consistent with having the same power-law index___. 
+
+It's useful to note also that although the chi-squared value has increased slightly, the goodness-of-fit has actually improved because of adding this extra constraint between the spectral indices of spectra 2 and 3. This shows that improvements in the goodness-of-fit can happen not just because of smaller chi-squared but also because we reduce the freedom of our model to fit the data, so that if the quality of fit stays the same or only gets very slightly worse __despite__ that reduction in freedom to fit, we can consider that an improvement in the consistency of the model with data. If the data can be fitted with a simpler (i.e. fewer free parameters) model without a significant reduction in fit quality, we should (usually) favour the simpler model.
 
 
 > ## Programming challenge: constraining spectral features

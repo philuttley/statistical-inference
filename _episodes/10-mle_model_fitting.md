@@ -28,7 +28,6 @@ In this episode we will be using numpy, as well as matplotlib's plotting library
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.stats as sps
-import scipy.optimize as spopt
 ~~~
 {: .language-python}
 
@@ -313,7 +312,7 @@ where $$\Gamma_{0}$$ is the width at 130 MeV. Thus we finally have a model for $
 To use this model to fit the data with lmfit, we'll first import lmfit and the subpackages `Minimizer` and `report_fit`. Then we'll define a `Parameter` object, which we can use as input to the model function and objective function.
 
 ~~~
-import lmfit as lmfit
+import lmfit
 from lmfit import Minimizer, Parameters, report_fit
 
 params = Parameters()  # Assigns a variable name to an empty Parameters object

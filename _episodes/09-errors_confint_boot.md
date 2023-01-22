@@ -10,7 +10,12 @@ objectives:
 - "Learn how to assign confidence intervals and upper limits to model parameters based on the posterior distribution, and to carry out transformations of distributions of random variables."
 - "Learn to use bootstrapping to estimate the uncertainties on statistical quantities obtained from data."
 keypoints:
-- "TBD"
+- "Confidence intervals and upper limits on model parameters can be calculated by integrating the posterior probability distribution so that the probability within the interval or limit bounds matches the desired significance of the interval/limit."
+- "While upper limit integrals are taken from the lowest value of the distribution upwards, confidence intervals are usually centred on the median ($$P=0.5$$) for asymmetric distributions, to ensure that the full probability is enclosed."
+- "If confidence intervals (or equivalently, error bars) are required for some function of random variable, they can be calculated using the transformation of variables method, based on the fact that a transformed range of the variable contains the same probability as the original posterior pdf."
+- "A less accurate approach for obtaining errors for functions of random variables is to use propagation of errors to estimate transformed error bars, however this method implicitly assumes zero covariance between the combined variable errors and assumes that 2nd order and higher derivatives of the new variable w.r.t the original variables are negligible, i.e. the function cannot be highly non-linear."
+- "Bootstrapping (resampling a data set with replacement, many times) offers a simple but effective way to calculate relatively low-significance confidence intervals (e.g. 1- to 2-sigma) for tens to hundreds of data values and complex transformations or calculations with the data. Higher significances require significantly larger data sets and numbers of bootstrap realisations to compute."
+
 ---
 
 <script src="../code/math-code.js"></script>
