@@ -351,7 +351,7 @@ It can be common that we have multiple datasets that we want to fit the same mod
 
 But it can also happen that we want to look for differences between our datasets which may give us new insights. For example, we may want to see if astronomical source spectra are different in ways which may correlate with other source properties. Or perhaps we want to see if spectra from a single source varies over time. Or maybe we ran our experiment multiple times with different settings and we want to see if there is an effect on our data. In these cases, it is useful to work out whether the MLEs for each dataset are consistent with being the same or whether they are different for different datasets. This is a type of hypothesis test and we can use the change in $$\chi^{2}$$ statistic or $$L$$ when we 'tie together' or 'free' some of the model parameters used to fit each dataset.
 
-For simultaneous fitting of multiple datasets we can input our data using the list format we already applied for our lmfit objective function in this and previous episodes. This time each list for `xdata`, `ydata` and `yerrs` will contain the corresponding data for multiple datasets. For this example of spectral fitting of (imagined) gamma ray spectra, we use the three photon events data files named `spec1.txt`, `spec2.txt` and `spec3.txt`. Our loop over the photon data files reads them in, rebins them so we can use weighted least squares fitting (this is possible due to the high photon counts) and then assigns the binned data and errors to our lmfit dataset arrays:
+For simultaneous fitting of multiple datasets we can input our data using the list format we already applied for our lmfit objective function in this and previous episodes. This time each list for `xdata`, `ydata` and `yerrs` will contain the corresponding data for multiple datasets. For this example of spectral fitting of (imagined) gamma ray spectra, we use the three photon events data files named `spec1.txt`, `spec2.txt` and `spec3.txt` (see [here][event_data]). Our loop over the photon data files reads them in, rebins them so we can use weighted least squares fitting (this is possible due to the high photon counts) and then assigns the binned data and errors to our lmfit dataset arrays:
 
 ~~~
 emin, emax = 10., 200.   # We should always use the known values that the data are sampled over 
@@ -725,6 +725,7 @@ It's useful to note also that although the chi-squared value has increased sligh
 
 
 [event_data]: https://github.com/philuttley/statistical-inference/tree/gh-pages/data/event_energies.txt
+[data_dir]: https://github.com/philuttley/statistical-inference/tree/gh-pages/data/
 
 
 {% include links.md %}
