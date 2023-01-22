@@ -640,13 +640,6 @@ Our new fit finds that the fit has improved (goodness-of-fit now 0.21) with `gam
 To do this test we look at the change in chi-squared (to use the colloquial term for the weighted least squares statistic) between our null hypothesis (with constrained power-law index) and our alternative, with that constraint removed. We also need to account for the change in the number of constraints, i.e. our degrees of freedom. In our null hypothesis we had two constraints for the index which we relaxed. So according to Wilks' theorem, if the null hypothesis is correct and the improvement with the alternative is just due to chance, the improvement $$\Delta \chi^{2}$$ should be distributed as $$\chi^{2}_{m}$$ where $$m=2$$. Let's take a look:
 
 ~~~
-constraints = 
-deltachisq = result_null.chisqr-result_altern.chisqr
-print("p-value for our delta-chi-squared: ",sps.chi2.sf(deltachisq,df=2))
-~~~
-{: .language-python}
-
-~~~
 m = result_null.nfree-result_altern.nfree
 deltachisq = result_null.chisqr-result_altern.chisqr
 print("p-value for our delta-chi-squared: ",sps.chi2.sf(deltachisq,df=m),"for",m,"fewer constraints.")
